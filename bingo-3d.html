@@ -1334,6 +1334,8 @@
         const AUDIO_DB_VERSION = 1;
         const AUDIO_STORE_NAME = 'audioByNumber';
         const SILENT_AUDIO_DATA_URI = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+        const IS_IOS_DEVICE = /iPad|iPhone|iPod/.test(navigator.userAgent)
+            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
         async function unlockAudioPlayback() {
             if (audioUnlocked) return true;
@@ -1715,7 +1717,7 @@
             activePlaybackAudio = null;
         }
 
-        function waitForAudioToFinish(audio, maxWaitMs = 12000) {
+        function waitForAudioToFinish(audio, maxWaitMs = 5000) {
             return new Promise((resolve) => {
                 let done = false;
                 let timeoutId = null;
@@ -1756,8 +1758,8 @@
                 try {
                     await audio.play();
                     const maxWaitMs = Number.isFinite(audio.duration) && audio.duration > 0
-                        ? Math.min(Math.max((audio.duration * 1000) + 1200, 2500), 12000)
-                        : 12000;
+                        ? Math.min(Math.max((audio.duration * 1000) + 1200, 2000), 5000)
+                        : 5000;
                     await waitForAudioToFinish(audio, maxWaitMs);
                     if (i < times - 1) await waitMs(AUDIO_REPEAT_GAP_MS);
                 } catch (_) {
@@ -1769,7 +1771,7 @@
                             retryAudio.playsInline = true;
                             activePlaybackAudio = retryAudio;
                             await retryAudio.play();
-                            await waitForAudioToFinish(retryAudio, 12000);
+                            await waitForAudioToFinish(retryAudio, 5000);
                             if (i < times - 1) await waitMs(AUDIO_REPEAT_GAP_MS);
                             continue;
                         } catch (_) {}
@@ -1801,7 +1803,10 @@
 
         function playBallAudioTwice(number) {
             if (!audioFiles[number]) return;
-            void enqueueBallAudio(audioFiles[number], 2);
+            // En iPhone/Safari, repetir dos veces en auto puede bloquear la cola.
+            // Priorizamos confiabilidad: 1 vez en iOS, 2 veces en el resto.
+            const repeatCount = IS_IOS_DEVICE ? 1 : 2;
+            void enqueueBallAudio(audioFiles[number], repeatCount);
         }
 
         function playBallAudioOnce(number) {
