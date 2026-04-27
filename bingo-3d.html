@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo 3D Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #141936;
+            --bg-card: #1a1f3a;
+            --accent-primary: #ff3366;
+            --accent-secondary: #00d4ff;
+            --accent-gold: #ffd700;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(255, 51, 102, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 212, 255, 0.08) 0%, transparent 50%);
+            animation: gradientShift 15s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .container { max-width: 1600px; margin: 0 auto; padding: 40px 20px; position: relative; z-index: 1; }
+        .settings-fab {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 52px;
+            height: 52px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.9), rgba(255, 51, 102, 0.9));
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+            transition: all 0.3s ease;
+            z-index: 8;
+        }
+        .settings-fab:hover {
+            transform: translateY(-2px) rotate(15deg);
+            border-color: rgba(255,255,255,0.25);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+        }
+        .settings-fab-icon {
+            font-size: 26px;
+            line-height: 1;
+            font-weight: 700;
+            transform: translateY(-1px);
+        }
+
+        header { text-align: center; margin-bottom: 60px; animation: fadeInDown 0.8s ease-out; }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 4.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+            letter-spacing: -2px;
+        }
+
+        .subtitle { font-size: 1.1rem; color: var(--text-secondary); font-weight: 500; }
+
+        .main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 40px; margin-bottom: 40px; }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .bombo-section { padding: 50px; animation: fadeIn 1s ease-out; position: relative; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* ====== BOMBO 3D REAL CON THREE.JS ====== */
+        .bombo-stage {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 540px;
+            margin: 0 auto 40px;
+        }
+
+        #bomboCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 20px;
+            background:
+                radial-gradient(ellipse at 50% 30%, rgba(255, 51, 102, 0.12) 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 90%, rgba(0, 212, 255, 0.10) 0%, transparent 55%),
+                linear-gradient(180deg, #0d1230 0%, #060818 100%);
+            cursor: grab;
+        }
+
+        #bomboCanvas:active { cursor: grabbing; }
+
+        .stage-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            border-radius: 20px;
+            box-shadow:
+                inset 0 0 80px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        /* Display de la bola que sale */
+        .ball-display {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            top: 30px;
+            right: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 5rem;
+            font-weight: 900;
+            color: #1a1a1a;
+            background:
+                radial-gradient(circle at 32% 28%, #ffffff 0%, #fff8b0 12%, var(--accent-gold) 45%, #d4a017 78%, #8a6500 100%);
+            box-shadow:
+                0 20px 50px rgba(255, 215, 0, 0.55),
+                0 0 0 6px rgba(255, 255, 255, 0.95),
+                0 0 0 8px rgba(0, 0, 0, 0.4),
+                inset -15px -15px 35px rgba(0, 0, 0, 0.3),
+                inset 12px 12px 25px rgba(255, 255, 255, 0.6);
+            opacity: 0;
+            transform: scale(0.3);
+            z-index: 5;
+            transition: none;
+        }
+
+        .ball-display::before {
+            content: '';
+            position: absolute;
+            top: 18%;
+            left: 22%;
+            width: 38%;
+            height: 38%;
+            background: radial-gradient(ellipse at top left, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.4) 40%, transparent 75%);
+            border-radius: 50%;
+            filter: blur(6px);
+        }
+
+        .ball-display.idle {
+            opacity: 1;
+            transform: scale(1);
+            animation: floatIdle 4s ease-in-out infinite;
+        }
+
+        @keyframes floatIdle {
+            0%, 100% { transform: scale(1) translateY(0px) rotate(-3deg); }
+            50% { transform: scale(1) translateY(-12px) rotate(3deg); }
+        }
+
+        .ball-display.calling {
+            animation: ballReveal 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes ballReveal {
+            0%   { opacity: 0; transform: scale(0.2) translateY(120px) rotate(-180deg); }
+            40%  { opacity: 1; transform: scale(1.25) translateY(-15px) rotate(15deg); }
+            55%  { transform: scale(0.92) translateY(8px) rotate(-8deg); }
+            70%  { transform: scale(1.08) translateY(-4px) rotate(4deg); }
+            85%  { transform: scale(0.98) translateY(2px) rotate(-2deg); }
+            100% { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); }
+        }
+
+        /* Etiqueta hint para arrastrar */
+        .drag-hint {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.45);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .drag-hint svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.6;
+        }
+
+        /* ====== RESTO DE UI ====== */
+        .controls { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .controls button { min-width: 230px; }
+
+        button {
+            padding: 18px 36px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'DM Sans', sans-serif;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.5s;
+        }
+
+        button:hover::before { transform: translateX(100%); }
+
+        .btn-call {
+            background: linear-gradient(135deg, var(--accent-primary), #d5006d);
+            color: white;
+            font-size: 1.15rem;
+            padding: 20px 48px;
+            box-shadow: 0 8px 30px rgba(255,51,102,0.4);
+        }
+
+        .btn-call:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(255,51,102,0.5); }
+        .btn-call:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+            border-color: var(--border-color);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 30px rgba(22, 163, 74, 0.35);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 36px rgba(22, 163, 74, 0.45);
+        }
+
+        .btn-success:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 6px 20px rgba(22, 163, 74, 0.28);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 30px rgba(220, 38, 38, 0.35);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 36px rgba(220, 38, 38, 0.45);
+        }
+
+        .btn-danger:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.28);
+        }
+
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .number-cell {
+            aspect-ratio: 1;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .number-cell:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-secondary);
+            box-shadow: 0 8px 24px rgba(0,212,255,0.3);
+        }
+
+        .number-cell.called {
+            background: linear-gradient(135deg, var(--accent-gold), #cc9900);
+            color: #1a1a1a;
+            border-color: var(--accent-gold);
+            animation: markCalled 0.5s ease-out;
+        }
+
+        @keyframes markCalled {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15) rotate(5deg); }
+            100% { transform: scale(1); }
+        }
+
+        .number-cell.called::after {
+            content: '✓';
+            position: absolute;
+            font-size: 2.2rem;
+            color: #2d5016;
+            font-weight: 900;
+        }
+
+        .sidebar { display: flex; flex-direction: column; gap: 24px; }
+        .stats-panel, .called-panel { padding: 32px; }
+
+        h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            background: var(--bg-secondary);
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover { border-color: rgba(255,255,255,0.2); transform: translateX(4px); }
+        .stat-label { font-size: 0.95rem; color: var(--text-secondary); font-weight: 500; }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .called-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .called-list::-webkit-scrollbar { width: 6px; }
+        .called-list::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 10px; }
+        .called-list::-webkit-scrollbar-thumb { background: var(--accent-primary); border-radius: 10px; }
+
+        .called-number {
+            background: linear-gradient(135deg, var(--accent-gold), #cc9900);
+            color: #1a1a1a;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 12px rgba(255,215,0,0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .called-number:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(255,215,0,0.5); }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(10,14,39,0.95);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active { display: flex; animation: fadeInModal 0.3s ease-out; }
+
+        @keyframes fadeInModal {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 28px;
+            border: 1px solid var(--border-color);
+            padding: 48px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.4s ease-out;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-content h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal-content > p { color: var(--text-secondary); margin-bottom: 32px; line-height: 1.6; }
+
+        .backup-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .audio-config {
+            margin-bottom: 20px;
+            padding: 24px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .audio-config:hover { border-color: rgba(255,255,255,0.2); }
+
+        .audio-config label {
+            display: block;
+            margin-bottom: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.05rem;
+        }
+
+        .audio-config input[type="file"] { display: none; }
+
+        .file-upload-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--accent-secondary), #0099cc);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+            font-size: 0.95rem;
+        }
+
+        .file-upload-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,212,255,0.4); }
+
+        .file-record-btn {
+            display: inline-block;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+            font-size: 0.95rem;
+            border: none;
+        }
+
+        .file-record-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(22,163,74,0.4); }
+
+        .file-record-btn.recording {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            box-shadow: 0 6px 20px rgba(220,38,38,0.4);
+        }
+
+        .file-delete-btn {
+            display: inline-block;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #8b1a3a, #6f1630);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+            font-size: 0.95rem;
+            border: none;
+        }
+
+        .file-delete-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,51,102,0.35); }
+
+        .file-delete-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .file-preview-btn {
+            display: inline-block;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+            font-size: 0.95rem;
+            border: none;
+        }
+
+        .file-preview-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,0.35); }
+
+        .file-preview-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .audio-status { display: inline-block; color: #48bb78; font-weight: 600; font-size: 0.95rem; }
+        .audio-status.empty { color: var(--text-secondary); }
+
+        .close-modal {
+            background: linear-gradient(135deg, var(--accent-primary), #d5006d);
+            color: white;
+            padding: 16px 40px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin-top: 24px;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 24px rgba(255,51,102,0.3);
+        }
+
+        .close-modal:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,51,102,0.5); }
+
+        .number-list { max-height: 450px; overflow-y: auto; }
+        .number-list::-webkit-scrollbar { width: 8px; }
+        .number-list::-webkit-scrollbar-track { background: var(--bg-primary); border-radius: 10px; }
+        .number-list::-webkit-scrollbar-thumb { background: var(--accent-primary); border-radius: 10px; }
+
+        @media (max-width: 1200px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .sidebar { flex-direction: row; }
+            .stats-panel, .called-panel { flex: 1; }
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 3rem; }
+            .bombo-section { padding: 30px 20px; }
+            .bombo-stage { height: 440px; }
+            .ball-display { width: 130px; height: 130px; font-size: 3.5rem; top: 20px; right: 20px; }
+            .numbers-grid { grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); gap: 10px; }
+            .number-cell { font-size: 1.4rem; }
+            .sidebar { flex-direction: column; }
+            .modal-content { padding: 32px 24px; }
+            .settings-fab { top: 10px; right: 10px; width: 46px; height: 46px; }
+            .settings-fab-icon { font-size: 22px; }
+        }
+
+        @keyframes confettiFall {
+            to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Bingo De Fer</h1>
+        </header>
+
+        <div class="main-grid">
+            <div class="card bombo-section">
+                <button class="settings-fab" type="button" onclick="openConfig()" aria-label="Configurar audios" title="Configurar audios">
+                    <span class="settings-fab-icon" aria-hidden="true">⚙</span>
+                </button>
+                <div class="bombo-stage">
+                    <canvas id="bomboCanvas"></canvas>
+                    <div class="stage-overlay"></div>
+                    <div class="ball-display idle" id="ballDisplay">?</div>
+                    <div class="drag-hint">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 9l3 3-3 3M10 9l-3 3 3 3" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn-call" id="callBtn" onclick="callNumber()">Lanzamiento Manual</button>
+                    <button class="btn-call" id="autoBtn" onclick="startAutoDraw()">Lanzamiento Automatico</button>
+                    <button class="btn-secondary" id="pauseBtn" onclick="toggleAutoPause()" disabled>Pausar Auto</button>
+                    <button class="btn-secondary" onclick="resetGame()">Reiniciar</button>
+                </div>
+
+                <div class="numbers-grid" id="numbersGrid"></div>
+            </div>
+
+            <div class="sidebar">
+                <div class="card stats-panel">
+                    <h3>Estadísticas</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Bolas Cantadas</span>
+                        <span class="stat-value" id="calledCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Bolas Restantes</span>
+                        <span class="stat-value" id="remainingCount">90</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Última Bola</span>
+                        <span class="stat-value" id="lastBall">-</span>
+                    </div>
+                </div>
+
+                <div class="card called-panel">
+                    <h3>Bolas Cantadas</h3>
+                    <div class="called-list" id="calledList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="configModal">
+        <div class="modal-content">
+            <h2>Configurar Audios</h2>
+            <p>Sube un archivo de audio para cada número. Cuando se cante esa bola, se reproducirá tu voz grabada.</p>
+            <div class="backup-actions">
+                <button class="btn-secondary" type="button" onclick="exportAudioBackup()">Exportar Todos</button>
+                <button class="btn-secondary" type="button" onclick="triggerImportBackup()">Importar Todos</button>
+                <input id="importBackupInput" type="file" accept=".json,application/json" style="display:none" onchange="importAudioBackup(event)">
+            </div>
+            <div class="number-list" id="audioConfigList"></div>
+            <button class="close-modal" onclick="closeConfig()">Cerrar</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ============================================================
+        //   BOMBO 3D REAL CON THREE.JS - Diseño profesional
+        // ============================================================
+        let scene, camera, renderer, cageGroup, ballsGroup, frameGroup;
+        let innerBalls = [], spinning = false, spinSpeed = 0;
+        let targetSpinSpeed = 0; // se inicializa en initThree() tras definir IDLE_SPIN_SPEED
+        let cameraAngle = 0, cameraTilt = 0.15, cameraDistance = 9;
+        let isDragging = false, dragStart = { x: 0, y: 0 };
+        let autoRotate = false;
+        let clock;
+
+        const BALL_COUNT = 90;
+        const BALL_RADIUS = 0.22;
+        const CAGE_RADIUS = 2.4;
+        const IDLE_SPIN_SPEED = 0; // bombo quieto en reposo
+
+        function initThree() {
+            const canvas = document.getElementById('bomboCanvas');
+            const w = canvas.clientWidth, h = canvas.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x0a0e27, 12, 25);
+
+            camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+            updateCameraPosition();
+
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(w, h, false);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+
+            clock = new THREE.Clock();
+
+            setupLights();
+            buildBomboFrame();
+            buildCage();
+            buildBalls();
+            buildFloor();
+
+            // Eventos de arrastre
+            canvas.addEventListener('mousedown', onDragStart);
+            canvas.addEventListener('mousemove', onDragMove);
+            canvas.addEventListener('mouseup', onDragEnd);
+            canvas.addEventListener('mouseleave', onDragEnd);
+            canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+            canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+            canvas.addEventListener('touchend', onDragEnd);
+
+            window.addEventListener('resize', onResize);
+
+            // Arrancar con rotación suave constante para que las bolas siempre se muevan
+            targetSpinSpeed = IDLE_SPIN_SPEED;
+
+            animate();
+        }
+
+        function updateCameraPosition() {
+            camera.position.x = Math.sin(cameraAngle) * cameraDistance;
+            camera.position.y = 1.5 + cameraTilt * 4;
+            camera.position.z = Math.cos(cameraAngle) * cameraDistance;
+            camera.lookAt(0, 0.3, 0);
+        }
+
+        function setupLights() {
+            // Luz ambiente sutil
+            const ambient = new THREE.AmbientLight(0x404868, 0.55);
+            scene.add(ambient);
+
+            // Luz key (principal cálida)
+            const keyLight = new THREE.DirectionalLight(0xffe8d0, 1.4);
+            keyLight.position.set(5, 8, 4);
+            keyLight.castShadow = true;
+            keyLight.shadow.mapSize.width = 1024;
+            keyLight.shadow.mapSize.height = 1024;
+            keyLight.shadow.camera.near = 0.5;
+            keyLight.shadow.camera.far = 25;
+            keyLight.shadow.camera.left = -8;
+            keyLight.shadow.camera.right = 8;
+            keyLight.shadow.camera.top = 8;
+            keyLight.shadow.camera.bottom = -8;
+            keyLight.shadow.bias = -0.0005;
+            scene.add(keyLight);
+
+            // Luz rim cyan (rebote dramático)
+            const rimLight = new THREE.DirectionalLight(0x00d4ff, 0.9);
+            rimLight.position.set(-6, 3, -5);
+            scene.add(rimLight);
+
+            // Luz fill rosa
+            const fillLight = new THREE.PointLight(0xff3366, 1.2, 18);
+            fillLight.position.set(-3, 2, 4);
+            scene.add(fillLight);
+
+            // Spotlight cenital sobre la jaula
+            const spot = new THREE.SpotLight(0xffffff, 1.5, 15, Math.PI / 5, 0.4, 1.2);
+            spot.position.set(0, 7, 0);
+            spot.target.position.set(0, 0, 0);
+            scene.add(spot);
+            scene.add(spot.target);
+        }
+
+        function buildFloor() {
+            // Suelo reflectante sutil con gradiente radial
+            const floorGeo = new THREE.CircleGeometry(8, 64);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x0a0e27,
+                metalness: 0.6,
+                roughness: 0.35,
+                transparent: true,
+                opacity: 0.85
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -2.8;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Anillo de luz en el suelo
+            const ringGeo = new THREE.RingGeometry(2.8, 3.2, 64);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0xff3366,
+                transparent: true,
+                opacity: 0.25,
+                side: THREE.DoubleSide
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = -2.79;
+            scene.add(ring);
+        }
+
+        function buildBomboFrame() {
+            frameGroup = new THREE.Group();
+
+            // Material metálico premium para la estructura
+            const metalMat = new THREE.MeshStandardMaterial({
+                color: 0x8b95a8,
+                metalness: 0.92,
+                roughness: 0.18
+            });
+            const darkMetalMat = new THREE.MeshStandardMaterial({
+                color: 0x2d3748,
+                metalness: 0.85,
+                roughness: 0.3
+            });
+
+            // Base inferior (pedestal cilíndrico)
+            const baseGeo = new THREE.CylinderGeometry(2.2, 2.6, 0.35, 32);
+            const base = new THREE.Mesh(baseGeo, darkMetalMat);
+            base.position.y = -2.6;
+            base.castShadow = true;
+            base.receiveShadow = true;
+            frameGroup.add(base);
+
+            // Anillo dorado en la base
+            const baseRingGeo = new THREE.TorusGeometry(2.25, 0.06, 16, 48);
+            const goldMat = new THREE.MeshStandardMaterial({
+                color: 0xffd700,
+                metalness: 1,
+                roughness: 0.2,
+                emissive: 0x664400,
+                emissiveIntensity: 0.2
+            });
+            const baseRing = new THREE.Mesh(baseRingGeo, goldMat);
+            baseRing.position.y = -2.42;
+            baseRing.rotation.x = Math.PI / 2;
+            frameGroup.add(baseRing);
+
+            // Soportes verticales (Y-frame)
+            const supportGeo = new THREE.CylinderGeometry(0.08, 0.1, 4.5, 16);
+            const leftSupport = new THREE.Mesh(supportGeo, metalMat);
+            leftSupport.position.set(-2.6, -0.3, 0);
+            leftSupport.rotation.z = -0.12;
+            leftSupport.castShadow = true;
+            frameGroup.add(leftSupport);
+
+            const rightSupport = new THREE.Mesh(supportGeo, metalMat);
+            rightSupport.position.set(2.6, -0.3, 0);
+            rightSupport.rotation.z = 0.12;
+            rightSupport.castShadow = true;
+            frameGroup.add(rightSupport);
+
+            // Conectores donde el eje atraviesa la jaula (cojinetes)
+            const bearingGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.5, 24);
+            const leftBearing = new THREE.Mesh(bearingGeo, darkMetalMat);
+            leftBearing.position.set(-2.45, 0.3, 0);
+            leftBearing.rotation.z = Math.PI / 2;
+            leftBearing.castShadow = true;
+            frameGroup.add(leftBearing);
+
+            const rightBearing = new THREE.Mesh(bearingGeo, darkMetalMat);
+            rightBearing.position.set(2.45, 0.3, 0);
+            rightBearing.rotation.z = Math.PI / 2;
+            rightBearing.castShadow = true;
+            frameGroup.add(rightBearing);
+
+            // Eje central que atraviesa la esfera (decorativo, fuera de la jaula)
+            const axisGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.6, 16);
+            const leftAxis = new THREE.Mesh(axisGeo, goldMat);
+            leftAxis.position.set(-2.7, 0.3, 0);
+            leftAxis.rotation.z = Math.PI / 2;
+            frameGroup.add(leftAxis);
+            const rightAxis = new THREE.Mesh(axisGeo, goldMat);
+            rightAxis.position.set(2.7, 0.3, 0);
+            rightAxis.rotation.z = Math.PI / 2;
+            frameGroup.add(rightAxis);
+
+            // Manivela (lado derecho)
+            const crankArmGeo = new THREE.BoxGeometry(0.12, 0.6, 0.12);
+            const crankArm = new THREE.Mesh(crankArmGeo, metalMat);
+            crankArm.position.set(3.0, 0.3, 0);
+            crankArm.castShadow = true;
+            frameGroup.add(crankArm);
+
+            const handleGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.35, 16);
+            const woodMat = new THREE.MeshStandardMaterial({
+                color: 0x6d4c41,
+                metalness: 0.1,
+                roughness: 0.7
+            });
+            const handle = new THREE.Mesh(handleGeo, woodMat);
+            handle.position.set(3.0, 0.6, 0.2);
+            handle.rotation.x = Math.PI / 2;
+            handle.castShadow = true;
+            frameGroup.add(handle);
+
+            // Tubo de salida en la base
+            const tubeGeo = new THREE.CylinderGeometry(0.45, 0.55, 0.7, 24, 1, true);
+            const tubeMat = new THREE.MeshStandardMaterial({
+                color: 0x1a1f3a,
+                metalness: 0.3,
+                roughness: 0.6,
+                side: THREE.DoubleSide
+            });
+            const tube = new THREE.Mesh(tubeGeo, tubeMat);
+            tube.position.y = -2.0;
+            frameGroup.add(tube);
+
+            scene.add(frameGroup);
+        }
+
+        function buildCage() {
+            cageGroup = new THREE.Group();
+
+            // Material de los aros (metálico cromado)
+            const wireMat = new THREE.MeshStandardMaterial({
+                color: 0xc8d0dc,
+                metalness: 0.95,
+                roughness: 0.12
+            });
+
+            // Esfera transparente que da volumen visual a la jaula (sutil)
+            const sphereGeo = new THREE.SphereGeometry(CAGE_RADIUS, 48, 48);
+            const sphereMat = new THREE.MeshPhysicalMaterial({
+                color: 0xff4757,
+                metalness: 0.1,
+                roughness: 0.05,
+                transmission: 0.85,
+                transparent: true,
+                opacity: 0.18,
+                ior: 1.4,
+                thickness: 0.5,
+                clearcoat: 1,
+                clearcoatRoughness: 0.1,
+                side: THREE.DoubleSide
+            });
+            const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+            cageGroup.add(sphere);
+
+            // Aros horizontales (latitudes)
+            const latitudes = [-1.0, -0.65, -0.3, 0, 0.3, 0.65, 1.0];
+            latitudes.forEach(lat => {
+                const r = CAGE_RADIUS * Math.cos(lat * Math.PI / 2);
+                const y = CAGE_RADIUS * Math.sin(lat * Math.PI / 2);
+                const ringGeo = new THREE.TorusGeometry(r, 0.035, 12, 64);
+                const ring = new THREE.Mesh(ringGeo, wireMat);
+                ring.position.y = y;
+                ring.rotation.x = Math.PI / 2;
+                ring.castShadow = true;
+                cageGroup.add(ring);
+            });
+
+            // Meridianos verticales (longitudes)
+            const meridianCount = 8;
+            for (let i = 0; i < meridianCount; i++) {
+                const angle = (i / meridianCount) * Math.PI * 2;
+                const curve = new THREE.EllipseCurve(0, 0, CAGE_RADIUS, CAGE_RADIUS, 0, Math.PI * 2, false, 0);
+                const points = curve.getPoints(64);
+                const tubeGeoCurve = new THREE.TubeGeometry(
+                    new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(p.x, p.y, 0))),
+                    64, 0.03, 8, true
+                );
+                const meridian = new THREE.Mesh(tubeGeoCurve, wireMat);
+                meridian.rotation.y = angle;
+                meridian.castShadow = true;
+                cageGroup.add(meridian);
+            }
+
+            // Anillos polares (refuerzos donde se conecta al eje)
+            const polarRingGeo = new THREE.TorusGeometry(0.25, 0.05, 12, 32);
+            const polarMat = new THREE.MeshStandardMaterial({
+                color: 0xffd700,
+                metalness: 1,
+                roughness: 0.2
+            });
+            const leftPole = new THREE.Mesh(polarRingGeo, polarMat);
+            leftPole.position.x = -CAGE_RADIUS;
+            leftPole.rotation.y = Math.PI / 2;
+            cageGroup.add(leftPole);
+
+            const rightPole = new THREE.Mesh(polarRingGeo, polarMat);
+            rightPole.position.x = CAGE_RADIUS;
+            rightPole.rotation.y = Math.PI / 2;
+            cageGroup.add(rightPole);
+
+            scene.add(cageGroup);
+        }
+
+        function buildBalls() {
+            ballsGroup = new THREE.Group();
+
+            // 90 bolas, una por cada número del bingo
+            for (let i = 0; i < BALL_COUNT; i++) {
+                const ballGeo = new THREE.SphereGeometry(BALL_RADIUS, 24, 24);
+
+                // Variar ligeramente el color de las bolas para realismo
+                const hue = 0.13 + (Math.random() - 0.5) * 0.02;
+                const color = new THREE.Color().setHSL(hue, 0.95, 0.55);
+
+                const ballMat = new THREE.MeshStandardMaterial({
+                    color: color,
+                    metalness: 0.25,
+                    roughness: 0.35,
+                    emissive: color,
+                    emissiveIntensity: 0.08
+                });
+                const ball = new THREE.Mesh(ballGeo, ballMat);
+
+                // Posición inicial aleatoria dentro de la jaula
+                const phi = Math.random() * Math.PI * 2;
+                const theta = Math.random() * Math.PI;
+                const r = (CAGE_RADIUS - BALL_RADIUS - 0.1) * Math.cbrt(Math.random());
+                ball.position.set(
+                    r * Math.sin(theta) * Math.cos(phi),
+                    r * Math.sin(theta) * Math.sin(phi),
+                    r * Math.cos(theta)
+                );
+
+                ball.castShadow = true;
+                ball.receiveShadow = true;
+
+                // Datos de física + número asignado (1..90)
+                ball.userData = {
+                    number: i + 1,
+                    velocity: new THREE.Vector3(0, 0, 0),
+                    angularVel: new THREE.Vector3(
+                        (Math.random() - 0.5) * 2,
+                        (Math.random() - 0.5) * 2,
+                        (Math.random() - 0.5) * 2
+                    ),
+                    radius: BALL_RADIUS
+                };
+
+                innerBalls.push(ball);
+                ballsGroup.add(ball);
+            }
+
+            scene.add(ballsGroup);
+        }
+
+        // Retira visualmente una bola del bombo (la que tenga el número dado)
+        function removeBallFromCage(number) {
+            const idx = innerBalls.findIndex(b => b.userData.number === number);
+            if (idx === -1) return;
+            const ball = innerBalls[idx];
+            ballsGroup.remove(ball);
+            ball.geometry.dispose();
+            ball.material.dispose();
+            innerBalls.splice(idx, 1);
+        }
+
+        // Física realista de bombo de bingo:
+        //   - gravedad fuerte (las bolas siempre caen al fondo)
+        //   - la jaula al girar arrastra las bolas que tocan sus paredes
+        //   - colisiones suaves entre bolas
+        function updateBallPhysics(dt) {
+            const gravity = -14;
+            const cageInnerR = CAGE_RADIUS - BALL_RADIUS - 0.05;
+            const wallRestitution = 0.35; // rebote contra la jaula (poco)
+            const airDamping = 0.99;      // fricción del aire (muy suave)
+
+            for (let i = 0; i < innerBalls.length; i++) {
+                const b = innerBalls[i];
+                const v = b.userData.velocity;
+                const p = b.position;
+
+                // Gravedad
+                v.y += gravity * dt;
+
+                // Aplicar velocidad
+                p.x += v.x * dt;
+                p.y += v.y * dt;
+                p.z += v.z * dt;
+
+                // Colisión con la pared esférica de la jaula
+                const dist = p.length();
+                if (dist > cageInnerR) {
+                    const normal = p.clone().normalize();
+                    // Reposicionar dentro
+                    p.copy(normal.clone().multiplyScalar(cageInnerR));
+
+                    // Velocidad de la pared en este punto: la jaula gira sobre el eje X
+                    // con velocidad angular spinSpeed. v_pared = ω × r
+                    // ω = (spinSpeed, 0, 0); r = posición de la bola
+                    const wallVel = new THREE.Vector3(
+                        0,
+                        -spinSpeed * p.z,
+                        spinSpeed * p.y
+                    );
+
+                    // Velocidad de la bola relativa a la pared
+                    const vRel = v.clone().sub(wallVel);
+
+                    // Componente normal (rebote) y tangencial (fricción)
+                    const vRelN = vRel.dot(normal);
+                    const vRelNormal = normal.clone().multiplyScalar(vRelN);
+                    const vRelTangent = vRel.clone().sub(vRelNormal);
+
+                    // Solo rebotar si va hacia fuera
+                    if (vRelN > 0) {
+                        // Rebote normal (con pérdida)
+                        vRelNormal.multiplyScalar(-wallRestitution);
+                        // Fricción tangencial: la pared arrastra la bola
+                        vRelTangent.multiplyScalar(0.4);
+
+                        // Recomponer velocidad: vRel reflejada + velocidad de pared
+                        v.copy(vRelNormal).add(vRelTangent).add(wallVel);
+                    }
+                }
+
+                // Rotación visual proporcional a la velocidad
+                const speed = v.length();
+                b.rotation.x += (b.userData.angularVel.x * 0.2 + speed * 0.6) * dt;
+                b.rotation.y += (b.userData.angularVel.y * 0.2 + speed * 0.4) * dt;
+                b.rotation.z += b.userData.angularVel.z * 0.2 * dt;
+
+                // Fricción del aire (muy suave, no compensa la gravedad)
+                v.multiplyScalar(airDamping);
+            }
+
+            // Colisiones bola-bola (pasada simple O(n²) — n=28, factible)
+            const minDist = BALL_RADIUS * 2;
+            for (let i = 0; i < innerBalls.length; i++) {
+                for (let j = i + 1; j < innerBalls.length; j++) {
+                    const a = innerBalls[i], c = innerBalls[j];
+                    const diff = a.position.clone().sub(c.position);
+                    const d = diff.length();
+                    if (d < minDist && d > 0.001) {
+                        const overlap = (minDist - d) / 2;
+                        const dir = diff.normalize();
+                        a.position.add(dir.clone().multiplyScalar(overlap));
+                        c.position.sub(dir.clone().multiplyScalar(overlap));
+
+                        // Intercambio de velocidad simple
+                        const va = a.userData.velocity;
+                        const vc = c.userData.velocity;
+                        const vRel = va.clone().sub(vc);
+                        const vAlong = vRel.dot(dir);
+                        if (vAlong < 0) {
+                            const impulse = dir.clone().multiplyScalar(vAlong * 0.6);
+                            va.sub(impulse);
+                            vc.add(impulse);
+                        }
+                    }
+                }
+            }
+        }
+
+        function onResize() {
+            const canvas = document.getElementById('bomboCanvas');
+            const w = canvas.clientWidth, h = canvas.clientHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h, false);
+        }
+
+        // === Drag para girar cámara ===
+        function onDragStart(e) {
+            isDragging = true;
+            autoRotate = false;
+            dragStart.x = e.clientX;
+            dragStart.y = e.clientY;
+        }
+        function onDragMove(e) {
+            if (!isDragging) return;
+            const dx = e.clientX - dragStart.x;
+            const dy = e.clientY - dragStart.y;
+            cameraAngle -= dx * 0.008;
+            cameraTilt = Math.max(-0.4, Math.min(0.6, cameraTilt + dy * 0.005));
+            dragStart.x = e.clientX;
+            dragStart.y = e.clientY;
+            updateCameraPosition();
+        }
+        function onDragEnd() { isDragging = false; }
+        function onTouchStart(e) {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                autoRotate = false;
+                dragStart.x = e.touches[0].clientX;
+                dragStart.y = e.touches[0].clientY;
+            }
+        }
+        function onTouchMove(e) {
+            if (!isDragging || e.touches.length !== 1) return;
+            e.preventDefault();
+            const dx = e.touches[0].clientX - dragStart.x;
+            const dy = e.touches[0].clientY - dragStart.y;
+            cameraAngle -= dx * 0.008;
+            cameraTilt = Math.max(-0.4, Math.min(0.6, cameraTilt + dy * 0.005));
+            dragStart.x = e.touches[0].clientX;
+            dragStart.y = e.touches[0].clientY;
+            updateCameraPosition();
+        }
+
+        // === Loop principal ===
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.033);
+
+            // Rotación automática lenta cuando está en idle
+            if (autoRotate && !isDragging && !spinning) {
+                cameraAngle += dt * 0.12;
+                updateCameraPosition();
+            }
+
+            // Easing asimétrico del spinSpeed:
+            //  - acelerando hacia el sorteo: rápido
+            //  - frenando hacia idle: muy gradual para evitar tirones
+            const accelerating = targetSpinSpeed > spinSpeed;
+            const easeRate = accelerating ? 1.8 : 0.6;
+            spinSpeed += (targetSpinSpeed - spinSpeed) * Math.min(dt * easeRate, 1);
+
+            // Rotar la jaula sobre eje X (como un bombo real)
+            cageGroup.rotation.x += spinSpeed * dt;
+
+            // Actualizar física de bolas
+            updateBallPhysics(dt);
+
+            renderer.render(scene, camera);
+        }
+
+        // === Trigger de animación cuando se canta una bola ===
+        function startSpin() {
+            spinning = true;
+            // Invertimos el sentido para evitar el giro visual derecha -> izquierda
+            targetSpinSpeed = -6.5; // velocidad angular del sorteo (rad/s)
+        }
+
+        function stopSpin() {
+            targetSpinSpeed = IDLE_SPIN_SPEED; // vuelve al giro suave en reposo
+            setTimeout(() => { spinning = false; }, 4000);
+        }
+
+        // ============================================================
+        //   LÓGICA DEL JUEGO (preservada del original)
+        // ============================================================
+        let numbers = [], calledNumbers = [], audioFiles = {}, audioMeta = {}, currentBall = null;
+        let isDrawing = false;
+        let autoDrawEnabled = false;
+        let autoDrawPaused = false;
+        let autoDrawTimer = null;
+        const AUTO_DRAW_INTERVAL_MS = 10000;
+        const AUDIO_REPEAT_GAP_MS = 300;
+        let activeRecorder = null;
+        let activeRecorderNumber = null;
+        let activeRecorderChunks = [];
+        let sharedMicStream = null;
+        let micPermissionBlocked = false;
+        let activePlaybackAudio = null;
+
+        // ============================================================
+        //   PERSISTENCIA DE AUDIOS (IndexedDB)
+        // ============================================================
+        const AUDIO_DB_NAME = 'bingo3dAudioDB';
+        const AUDIO_DB_VERSION = 1;
+        const AUDIO_STORE_NAME = 'audioByNumber';
+
+        function openAudioDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(AUDIO_DB_NAME, AUDIO_DB_VERSION);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(AUDIO_STORE_NAME)) {
+                        db.createObjectStore(AUDIO_STORE_NAME, { keyPath: 'number' });
+                    }
+                };
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveAudioToDB(number, file) {
+            const db = await openAudioDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(AUDIO_STORE_NAME, 'readwrite');
+                const store = tx.objectStore(AUDIO_STORE_NAME);
+                store.put({
+                    number,
+                    blob: file,
+                    name: file.name || `audio-${number}`,
+                    type: file.type || 'audio/mpeg',
+                    updatedAt: Date.now()
+                });
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            });
+        }
+
+        async function loadAudioFilesFromDB() {
+            const db = await openAudioDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(AUDIO_STORE_NAME, 'readonly');
+                const store = tx.objectStore(AUDIO_STORE_NAME);
+                const request = store.getAll();
+
+                request.onsuccess = () => {
+                    const rows = request.result || [];
+                    rows.forEach(row => {
+                        if (!row || typeof row.number !== 'number' || !row.blob) return;
+                        if (audioFiles[row.number]) URL.revokeObjectURL(audioFiles[row.number]);
+                        audioFiles[row.number] = URL.createObjectURL(row.blob);
+                        audioMeta[row.number] = {
+                            name: row.name || `audio-${row.number}`,
+                            type: row.type || row.blob.type || 'audio/mpeg',
+                            updatedAt: row.updatedAt || Date.now()
+                        };
+                    });
+                    resolve();
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getAllAudioRowsFromDB() {
+            const db = await openAudioDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(AUDIO_STORE_NAME, 'readonly');
+                const store = tx.objectStore(AUDIO_STORE_NAME);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function replaceAllAudioRowsInDB(rows) {
+            const db = await openAudioDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(AUDIO_STORE_NAME, 'readwrite');
+                const store = tx.objectStore(AUDIO_STORE_NAME);
+                store.clear();
+                rows.forEach(row => store.put(row));
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            });
+        }
+
+        function blobToDataURL(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        function dataURLToBlob(dataURL) {
+            const [meta, content] = dataURL.split(',');
+            const mimeMatch = /data:(.*?);base64/.exec(meta || '');
+            const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+            const binary = atob(content || '');
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return new Blob([bytes], { type: mime });
+        }
+
+        async function exportAudioBackup() {
+            try {
+                const rows = await getAllAudioRowsFromDB();
+                const items = [];
+                for (const row of rows) {
+                    if (!row || typeof row.number !== 'number' || !row.blob) continue;
+                    items.push({
+                        number: row.number,
+                        name: row.name || `audio-${row.number}`,
+                        type: row.type || row.blob.type || 'audio/mpeg',
+                        updatedAt: row.updatedAt || Date.now(),
+                        dataUrl: await blobToDataURL(row.blob)
+                    });
+                }
+
+                const payload = {
+                    version: 1,
+                    exportedAt: new Date().toISOString(),
+                    count: items.length,
+                    items
+                };
+
+                const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+                a.href = url;
+                a.download = `bingo-audios-backup-${stamp}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Error al exportar backup:', err);
+                alert('No se pudo exportar el backup de audios.');
+            }
+        }
+
+        function triggerImportBackup() {
+            const input = document.getElementById('importBackupInput');
+            if (input) input.click();
+        }
+
+        async function importAudioBackup(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const payload = JSON.parse(text);
+                if (!payload || !Array.isArray(payload.items)) {
+                    throw new Error('Formato de backup invalido');
+                }
+
+                const rows = payload.items
+                    .filter(item => item && typeof item.number === 'number' && typeof item.dataUrl === 'string')
+                    .map(item => ({
+                        number: item.number,
+                        blob: dataURLToBlob(item.dataUrl),
+                        name: item.name || `audio-${item.number}`,
+                        type: item.type || 'audio/mpeg',
+                        updatedAt: item.updatedAt || Date.now()
+                    }));
+
+                // Limpiar URLs previas en memoria antes de recargar
+                Object.keys(audioFiles).forEach(key => {
+                    const n = Number(key);
+                    if (audioFiles[n]) URL.revokeObjectURL(audioFiles[n]);
+                });
+                audioFiles = {};
+                audioMeta = {};
+
+                await replaceAllAudioRowsInDB(rows);
+                await loadAudioFilesFromDB();
+                openConfig(); // refresca estados de botones/listado
+                alert(`Importacion completada: ${rows.length} audios cargados.`);
+            } catch (err) {
+                console.error('Error al importar backup:', err);
+                alert('No se pudo importar el archivo. Verifica que sea un backup valido.');
+            } finally {
+                event.target.value = '';
+            }
+        }
+
+        async function deleteAudioFromDB(number) {
+            const db = await openAudioDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(AUDIO_STORE_NAME, 'readwrite');
+                const store = tx.objectStore(AUDIO_STORE_NAME);
+                store.delete(number);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            });
+        }
+
+        function stopAutoDraw() {
+            autoDrawEnabled = false;
+            autoDrawPaused = false;
+            if (autoDrawTimer) {
+                clearTimeout(autoDrawTimer);
+                autoDrawTimer = null;
+            }
+            const autoBtn = document.getElementById('autoBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            if (autoBtn) {
+                autoBtn.disabled = false;
+                autoBtn.classList.remove('btn-success');
+            }
+            if (pauseBtn) {
+                pauseBtn.disabled = true;
+                pauseBtn.textContent = 'Pausar Auto';
+                pauseBtn.classList.remove('btn-success');
+                pauseBtn.classList.add('btn-danger');
+            }
+        }
+
+        function runAutoDrawCycle() {
+            if (!autoDrawEnabled || autoDrawPaused || numbers.length === 0) return;
+            const started = callNumber(true);
+            if (!autoDrawEnabled || autoDrawPaused || numbers.length === 0) return;
+            autoDrawTimer = setTimeout(runAutoDrawCycle, started ? AUTO_DRAW_INTERVAL_MS : 500);
+        }
+
+        function startAutoDraw() {
+            if (autoDrawEnabled || numbers.length === 0) return;
+            autoDrawEnabled = true;
+            autoDrawPaused = false;
+            const autoBtn = document.getElementById('autoBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            if (autoBtn) {
+                autoBtn.disabled = true;
+                autoBtn.classList.add('btn-success');
+            }
+            if (pauseBtn) {
+                pauseBtn.disabled = false;
+                pauseBtn.textContent = 'Pausar Auto';
+                pauseBtn.classList.remove('btn-success');
+                pauseBtn.classList.add('btn-danger');
+            }
+            // Primer disparo inmediato y luego cada 10 segundos
+            runAutoDrawCycle();
+        }
+
+        function toggleAutoPause() {
+            if (!autoDrawEnabled) return;
+            autoDrawPaused = !autoDrawPaused;
+            const pauseBtn = document.getElementById('pauseBtn');
+            if (pauseBtn) {
+                pauseBtn.textContent = autoDrawPaused ? 'Reanudar Auto' : 'Pausar Auto';
+                pauseBtn.classList.toggle('btn-success', autoDrawPaused);
+                pauseBtn.classList.toggle('btn-danger', !autoDrawPaused);
+            }
+            if (autoDrawPaused) {
+                if (autoDrawTimer) {
+                    clearTimeout(autoDrawTimer);
+                    autoDrawTimer = null;
+                }
+                return;
+            }
+            runAutoDrawCycle();
+        }
+
+        function stopActivePlayback() {
+            if (!activePlaybackAudio) return;
+            activePlaybackAudio.pause();
+            activePlaybackAudio.currentTime = 0;
+            activePlaybackAudio = null;
+        }
+
+        function waitForAudioToFinish(audio) {
+            return new Promise((resolve) => {
+                let done = false;
+                const finish = () => {
+                    if (done) return;
+                    done = true;
+                    audio.onended = null;
+                    audio.onerror = null;
+                    resolve();
+                };
+                audio.onended = finish;
+                audio.onerror = finish;
+            });
+        }
+
+        function waitMs(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function playAudioSequential(url, times) {
+            stopActivePlayback();
+            const audio = new Audio(url);
+            activePlaybackAudio = audio;
+
+            for (let i = 0; i < times; i++) {
+                if (activePlaybackAudio !== audio) break;
+                audio.currentTime = 0;
+                try {
+                    await audio.play();
+                    await waitForAudioToFinish(audio);
+                    if (i < times - 1) await waitMs(AUDIO_REPEAT_GAP_MS);
+                } catch (_) {
+                    break;
+                }
+            }
+
+            if (activePlaybackAudio === audio) activePlaybackAudio = null;
+        }
+
+        function playBallAudioTwice(number) {
+            if (!audioFiles[number]) return;
+            void playAudioSequential(audioFiles[number], 2);
+        }
+
+        function playBallAudioOnce(number) {
+            if (!audioFiles[number]) return;
+            void playAudioSequential(audioFiles[number], 1);
+        }
+
+        async function setAudioForNumber(number, file) {
+            if (audioFiles[number]) URL.revokeObjectURL(audioFiles[number]);
+            audioFiles[number] = URL.createObjectURL(file);
+            audioMeta[number] = {
+                name: file.name || `audio-${number}`,
+                type: file.type || 'audio/mpeg',
+                updatedAt: Date.now()
+            };
+            await saveAudioToDB(number, file);
+
+            const status = document.getElementById(`status-${number}`);
+            if (status) {
+                status.className = 'audio-status';
+                status.textContent = `✓ Audio cargado (${audioMeta[number].name})`;
+            }
+
+            const audioInput = document.getElementById(`audio-${number}`);
+            const row = audioInput ? audioInput.parentElement : null;
+            if (row) {
+                const deleteBtn = row.querySelector('.file-delete-btn');
+                if (deleteBtn) deleteBtn.disabled = false;
+                const previewBtn = row.querySelector('.file-preview-btn');
+                if (previewBtn) previewBtn.disabled = false;
+            }
+        }
+
+        function updateRecordButtons() {
+            document.querySelectorAll('.file-record-btn').forEach(btn => {
+                const number = Number(btn.dataset.number);
+                const isCurrent = activeRecorder && number === activeRecorderNumber;
+                btn.classList.toggle('recording', Boolean(isCurrent));
+                btn.textContent = isCurrent ? 'Detener Grabacion' : 'Grabar Audio';
+            });
+        }
+
+        async function getSharedMicStream() {
+            if (sharedMicStream) return sharedMicStream;
+            if (micPermissionBlocked) throw new Error('MIC_BLOCKED');
+            sharedMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            return sharedMicStream;
+        }
+
+        async function toggleAudioRecording(number) {
+            if (activeRecorder && activeRecorderNumber === number) {
+                activeRecorder.stop();
+                return;
+            }
+
+            if (activeRecorder) {
+                alert('Ya hay una grabacion en curso. Detenla primero.');
+                return;
+            }
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+                alert('Tu navegador no soporta grabacion de audio.');
+                return;
+            }
+
+            try {
+                const stream = await getSharedMicStream();
+                activeRecorderChunks = [];
+
+                const recorder = new MediaRecorder(stream);
+                activeRecorder = recorder;
+                activeRecorderNumber = number;
+                updateRecordButtons();
+
+                recorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) activeRecorderChunks.push(event.data);
+                };
+
+                recorder.onstop = async () => {
+                    const mimeType = recorder.mimeType || 'audio/webm';
+                    const blob = new Blob(activeRecorderChunks, { type: mimeType });
+                    if (blob.size > 0) {
+                        const ext = mimeType.includes('ogg') ? 'ogg' : 'webm';
+                        const file = new File([blob], `grabacion-${number}.${ext}`, { type: mimeType });
+                        await setAudioForNumber(number, file);
+                    }
+                    activeRecorder = null;
+                    activeRecorderNumber = null;
+                    activeRecorderChunks = [];
+                    updateRecordButtons();
+                };
+
+                recorder.start();
+            } catch (err) {
+                console.error('Error al grabar audio:', err);
+                micPermissionBlocked = true;
+                alert('No se pudo acceder al microfono. Permite el microfono para grabar.');
+            }
+        }
+
+        function initGame() {
+            numbers = Array.from({length: BALL_COUNT}, (_, i) => i + 1);
+            calledNumbers = [];
+            currentBall = null;
+            isDrawing = false;
+            stopAutoDraw();
+            renderNumbers();
+            updateStats();
+            updateCalledList();
+            const ballDisplay = document.getElementById('ballDisplay');
+            ballDisplay.textContent = '?';
+            ballDisplay.classList.add('idle');
+            ballDisplay.classList.remove('calling');
+            document.getElementById('callBtn').disabled = false;
+
+            // Recargar todas las bolas en el bombo si la escena ya existe
+            if (ballsGroup) {
+                // Quitar las que queden
+                while (innerBalls.length > 0) {
+                    const b = innerBalls.pop();
+                    ballsGroup.remove(b);
+                    b.geometry.dispose();
+                    b.material.dispose();
+                }
+                buildBalls();
+            }
+        }
+
+        function renderNumbers() {
+            const grid = document.getElementById('numbersGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= BALL_COUNT; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'number-cell';
+                cell.textContent = i;
+                cell.id = `num-${i}`;
+                if (calledNumbers.includes(i)) cell.classList.add('called');
+                cell.onclick = () => manualCall(i);
+                grid.appendChild(cell);
+            }
+        }
+
+        function callNumber(isAuto = false) {
+            if (isDrawing) return false;
+            if (numbers.length === 0) {
+                stopAutoDraw();
+                alert('¡No quedan más bolas! 🎉');
+                createConfetti();
+                return false;
+            }
+            isDrawing = true;
+
+            const randomIndex = Math.floor(Math.random() * numbers.length);
+            const number = numbers[randomIndex];
+            numbers.splice(randomIndex, 1);
+
+            const ballDisplay = document.getElementById('ballDisplay');
+            ballDisplay.classList.remove('calling', 'idle');
+            void ballDisplay.offsetWidth;
+
+            // Ocultar la bola actual y arrancar el bombo
+            ballDisplay.style.opacity = '0';
+            startSpin();
+
+            // Tras 2.2s: detener el bombo, retirar bola del bombo y mostrar la nueva
+            setTimeout(() => {
+                stopSpin();
+                removeBallFromCage(number);
+                ballDisplay.textContent = number;
+                ballDisplay.classList.add('calling');
+                calledNumbers.push(number);
+                currentBall = number;
+                updateStats();
+                updateCalledList();
+                if (isAuto) {
+                    playBallAudioTwice(number);
+                } else {
+                    playBallAudioOnce(number);
+                }
+            }, 2200);
+
+            // Tras 4s: marcar el número en la cuadrícula y volver a idle
+            setTimeout(() => {
+                const cell = document.getElementById(`num-${number}`);
+                if (cell) cell.classList.add('called');
+                ballDisplay.classList.remove('calling');
+                ballDisplay.classList.add('idle');
+                ballDisplay.style.opacity = '';
+                isDrawing = false;
+            }, 4000);
+            updateStats();
+
+            if (numbers.length === 0) {
+                document.getElementById('callBtn').disabled = true;
+                stopAutoDraw();
+                setTimeout(() => { alert('¡Juego terminado! 🎉'); createConfetti(); }, 4500);
+            }
+            return true;
+        }
+
+        function manualCall(number) {
+            if (calledNumbers.includes(number) && audioFiles[number]) {
+                new Audio(audioFiles[number]).play();
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('calledCount').textContent = calledNumbers.length;
+            document.getElementById('remainingCount').textContent = numbers.length;
+            document.getElementById('lastBall').textContent = currentBall || '-';
+        }
+
+        function updateCalledList() {
+            const list = document.getElementById('calledList');
+            list.innerHTML = '';
+            calledNumbers.slice().reverse().forEach(num => {
+                const span = document.createElement('span');
+                span.className = 'called-number';
+                span.textContent = num;
+                span.onclick = () => { if (audioFiles[num]) new Audio(audioFiles[num]).play(); };
+                list.appendChild(span);
+            });
+        }
+
+        function resetGame() {
+            if (confirm('¿Seguro que quieres reiniciar el juego?')) initGame();
+        }
+
+        function openConfig() {
+            const modal = document.getElementById('configModal');
+            const list = document.getElementById('audioConfigList');
+            list.innerHTML = '';
+            
+            for (let i = 1; i <= BALL_COUNT; i++) {
+                const div = document.createElement('div');
+                div.className = 'audio-config';
+                
+                const label = document.createElement('label');
+                label.textContent = `Número ${i}`;
+                
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'audio/*';
+                input.id = `audio-${i}`;
+                input.onchange = (e) => handleAudioUpload(i, e);
+                
+                const uploadBtn = document.createElement('label');
+                uploadBtn.className = 'file-upload-btn';
+                uploadBtn.textContent = 'Subir Audio';
+                uploadBtn.htmlFor = `audio-${i}`;
+
+                const recordBtn = document.createElement('button');
+                recordBtn.type = 'button';
+                recordBtn.className = 'file-record-btn';
+                recordBtn.textContent = 'Grabar Audio';
+                recordBtn.dataset.number = String(i);
+                recordBtn.onclick = async () => {
+                    await toggleAudioRecording(i);
+                };
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'file-delete-btn';
+                deleteBtn.textContent = 'Eliminar';
+                deleteBtn.disabled = !audioFiles[i];
+                deleteBtn.onclick = async () => {
+                    await removeAudioForNumber(i);
+                };
+
+                const previewBtn = document.createElement('button');
+                previewBtn.type = 'button';
+                previewBtn.className = 'file-preview-btn';
+                previewBtn.textContent = 'Vista previa';
+                previewBtn.disabled = !audioFiles[i];
+                previewBtn.onclick = () => {
+                    if (!audioFiles[i]) return;
+                    const audio = new Audio(audioFiles[i]);
+                    audio.play().catch(() => {});
+                };
+                
+                const status = document.createElement('span');
+                status.className = audioFiles[i] ? 'audio-status' : 'audio-status empty';
+                status.textContent = audioFiles[i]
+                    ? `✓ Audio cargado (${audioMeta[i]?.name || 'archivo guardado'})`
+                    : 'Sin audio';
+                status.id = `status-${i}`;
+                
+                div.appendChild(label);
+                div.appendChild(input);
+                div.appendChild(uploadBtn);
+                div.appendChild(recordBtn);
+                div.appendChild(deleteBtn);
+                div.appendChild(previewBtn);
+                div.appendChild(status);
+                list.appendChild(div);
+            }
+            updateRecordButtons();
+            modal.classList.add('active');
+        }
+
+        function closeConfig() {
+            if (activeRecorder) {
+                activeRecorder.stop();
+            }
+            document.getElementById('configModal').classList.remove('active');
+        }
+
+        async function handleAudioUpload(number, event) {
+            const file = event.target.files[0];
+            if (file) {
+                await setAudioForNumber(number, file);
+            }
+        }
+
+        async function removeAudioForNumber(number) {
+            if (audioFiles[number]) {
+                URL.revokeObjectURL(audioFiles[number]);
+                delete audioFiles[number];
+            }
+            delete audioMeta[number];
+            await deleteAudioFromDB(number);
+
+            const status = document.getElementById(`status-${number}`);
+            if (status) {
+                status.className = 'audio-status empty';
+                status.textContent = 'Sin audio';
+            }
+
+            const audioInput = document.getElementById(`audio-${number}`);
+            if (audioInput) audioInput.value = '';
+            const row = audioInput ? audioInput.parentElement : null;
+            if (row) {
+                const deleteBtn = row.querySelector('.file-delete-btn');
+                if (deleteBtn) deleteBtn.disabled = true;
+                const previewBtn = row.querySelector('.file-preview-btn');
+                if (previewBtn) previewBtn.disabled = true;
+            }
+        }
+
+        function createConfetti() {
+            const colors = ['#ffd700', '#ff3366', '#00d4ff', '#ff6b9d', '#00ff88'];
+            for (let i = 0; i < 150; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    Object.assign(confetti.style, {
+                        position: 'fixed',
+                        width: '10px',
+                        height: '10px',
+                        background: colors[Math.floor(Math.random() * colors.length)],
+                        left: Math.random() * 100 + 'vw',
+                        top: '-10px',
+                        borderRadius: '50%',
+                        zIndex: '9999',
+                        animation: 'confettiFall 3s linear forwards'
+                    });
+                    document.body.appendChild(confetti);
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 20);
+            }
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('configModal');
+            if (event.target === modal) closeConfig();
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (sharedMicStream) {
+                sharedMicStream.getTracks().forEach(track => track.stop());
+                sharedMicStream = null;
+            }
+        });
+
+        // Inicialización
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await loadAudioFilesFromDB();
+            } catch (err) {
+                console.error('No se pudieron cargar audios guardados:', err);
+            }
+            initThree();
+            initGame();
+        });
+    </script>
+</body>
+</html>
