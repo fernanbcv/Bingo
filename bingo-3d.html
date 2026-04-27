@@ -1315,6 +1315,7 @@
         let drawRevealTimer = null;
         let drawFinalizeTimer = null;
         let drawSessionId = 0;
+        let audioLoadingInProgress = false;
         const AUTO_DRAW_INTERVAL_MS = 10000;
         const AUDIO_REPEAT_GAP_MS = 300;
         let activeRecorder = null;
@@ -1652,10 +1653,18 @@
             const callBtn = document.getElementById('callBtn');
             if (!callBtn) return;
             const blockedByRunningAuto = autoDrawEnabled && !autoDrawPaused;
-            callBtn.disabled = blockedByRunningAuto || numbers.length === 0;
-            callBtn.textContent = blockedByRunningAuto
+            callBtn.disabled = audioLoadingInProgress || blockedByRunningAuto || numbers.length === 0;
+            callBtn.textContent = audioLoadingInProgress
+                ? 'Cargando audios...'
+                : blockedByRunningAuto
                 ? 'Manual bloqueado (Auto activo)'
                 : 'Lanzamiento Manual';
+        }
+
+        function updateAutoButtonState() {
+            const autoBtn = document.getElementById('autoBtn');
+            if (!autoBtn) return;
+            autoBtn.disabled = audioLoadingInProgress || autoDrawEnabled || numbers.length === 0;
         }
 
         function runAutoDrawCycle() {
@@ -1666,6 +1675,7 @@
         }
 
         function startAutoDraw() {
+            if (audioLoadingInProgress) return;
             if (autoDrawEnabled || numbers.length === 0) return;
             // Importante en móvil: desbloquear audio desde el gesto del usuario
             // al pulsar "Lanzamiento Automatico", antes de los plays diferidos.
@@ -1675,10 +1685,8 @@
             autoDrawPaused = false;
             const autoBtn = document.getElementById('autoBtn');
             const pauseBtn = document.getElementById('pauseBtn');
-            if (autoBtn) {
-                autoBtn.disabled = true;
-                autoBtn.classList.add('btn-success');
-            }
+            if (autoBtn) autoBtn.classList.add('btn-success');
+            updateAutoButtonState();
             updateManualCallButtonState();
             if (pauseBtn) {
                 pauseBtn.disabled = false;
@@ -1962,6 +1970,7 @@
         }
 
         function callNumber(isAuto = false) {
+            if (audioLoadingInProgress) return false;
             if (!isAuto && autoDrawEnabled && !autoDrawPaused) return false;
             if (isDrawing) return false;
             if (!isAuto) {
@@ -2130,11 +2139,25 @@
             modal.classList.add('active');
         }
 
-        function closeConfig() {
+        async function closeConfig() {
             if (activeRecorder) {
                 activeRecorder.stop();
             }
             document.getElementById('configModal').classList.remove('active');
+            stopAutoDraw();
+            audioLoadingInProgress = true;
+            updateManualCallButtonState();
+            updateAutoButtonState();
+            try {
+                await loadAudioFilesFromDB();
+            } catch (err) {
+                console.error('No se pudieron recargar audios al cerrar configuracion:', err);
+                alert('No se pudieron recargar todos los audios guardados.');
+            } finally {
+                audioLoadingInProgress = false;
+                updateManualCallButtonState();
+                updateAutoButtonState();
+            }
         }
 
         async function handleAudioUpload(number, event) {
