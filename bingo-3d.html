@@ -131,6 +131,9 @@
                 radial-gradient(ellipse at 50% 90%, rgba(0, 212, 255, 0.10) 0%, transparent 55%),
                 linear-gradient(180deg, #0d1230 0%, #060818 100%);
             cursor: grab;
+            touch-action: none;
+            -ms-touch-action: none;
+            user-select: none;
         }
 
         #bomboCanvas:active { cursor: grabbing; }
@@ -742,6 +745,7 @@
         let cameraAngle = 0, cameraTilt = 0.15, cameraDistance = 9;
         let isDragging = false, dragStart = { x: 0, y: 0 };
         let autoRotate = false;
+        let lastTouchEndTs = 0;
         let clock;
 
         const BALL_COUNT = 90;
@@ -780,9 +784,13 @@
             canvas.addEventListener('mousemove', onDragMove);
             canvas.addEventListener('mouseup', onDragEnd);
             canvas.addEventListener('mouseleave', onDragEnd);
-            canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+            canvas.addEventListener('touchstart', onTouchStart, { passive: false });
             canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-            canvas.addEventListener('touchend', onDragEnd);
+            canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+            canvas.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+            canvas.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+            canvas.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+            canvas.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
 
             window.addEventListener('resize', onResize);
 
@@ -1229,6 +1237,7 @@
 
         // === Drag para girar cámara ===
         function onDragStart(e) {
+            if (autoDrawEnabled && !autoDrawPaused) return;
             isDragging = true;
             autoRotate = false;
             dragStart.x = e.clientX;
@@ -1246,6 +1255,11 @@
         }
         function onDragEnd() { isDragging = false; }
         function onTouchStart(e) {
+            if (autoDrawEnabled && !autoDrawPaused) {
+                e.preventDefault();
+                return;
+            }
+            e.preventDefault();
             if (e.touches.length === 1) {
                 isDragging = true;
                 autoRotate = false;
@@ -1263,6 +1277,14 @@
             dragStart.x = e.touches[0].clientX;
             dragStart.y = e.touches[0].clientY;
             updateCameraPosition();
+        }
+        function onTouchEnd(e) {
+            const now = Date.now();
+            if (now - lastTouchEndTs < 300) {
+                e.preventDefault();
+            }
+            lastTouchEndTs = now;
+            onDragEnd();
         }
 
         // === Loop principal ===
