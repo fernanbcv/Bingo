@@ -332,7 +332,7 @@
 
         .numbers-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+            grid-template-columns: repeat(10, minmax(0, 1fr));
             gap: 12px;
             margin-top: 30px;
         }
@@ -431,7 +431,12 @@
         .called-number {
             background: linear-gradient(135deg, var(--accent-gold), #cc9900);
             color: #1a1a1a;
-            padding: 10px 18px;
+            width: 52px;
+            height: 52px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
             border-radius: 12px;
             font-weight: 700;
             font-size: 1.1rem;
@@ -641,7 +646,7 @@
             .bombo-section { padding: 30px 20px; }
             .bombo-stage { height: 440px; }
             .ball-display { width: 130px; height: 130px; font-size: 3.5rem; top: 20px; right: 20px; }
-            .numbers-grid { grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); gap: 10px; }
+            .numbers-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
             .number-cell { font-size: 1.4rem; }
             .sidebar { flex-direction: column; }
             .modal-content { padding: 32px 24px; }
@@ -1119,8 +1124,11 @@
         function updateBallPhysics(dt) {
             const gravity = -14;
             const cageInnerR = CAGE_RADIUS - BALL_RADIUS - 0.05;
-            const wallRestitution = 0.35; // rebote contra la jaula (poco)
-            const airDamping = 0.99;      // fricción del aire (muy suave)
+            const wallRestitution = 0.42; // rebote contra la jaula (moderado)
+            const wallTangentialDamping = 0.9; // menor frenado tangencial para evitar "pegado"
+            const wallDetachKick = 0.28;  // pequeño empuje al interior tras contacto
+            const contactSlop = 0.01;     // separacion minima respecto a la pared
+            const airDamping = 0.992;     // fricción del aire (muy suave)
 
             for (let i = 0; i < innerBalls.length; i++) {
                 const b = innerBalls[i];
@@ -1140,7 +1148,7 @@
                 if (dist > cageInnerR) {
                     const normal = p.clone().normalize();
                     // Reposicionar dentro
-                    p.copy(normal.clone().multiplyScalar(cageInnerR));
+                    p.copy(normal.clone().multiplyScalar(cageInnerR - contactSlop));
 
                     // Velocidad de la pared en este punto: la jaula gira sobre el eje X
                     // con velocidad angular spinSpeed. v_pared = ω × r
@@ -1156,19 +1164,21 @@
 
                     // Componente normal (rebote) y tangencial (fricción)
                     const vRelN = vRel.dot(normal);
-                    const vRelNormal = normal.clone().multiplyScalar(vRelN);
-                    const vRelTangent = vRel.clone().sub(vRelNormal);
-
-                    // Solo rebotar si va hacia fuera
+                    // Solo rebotar si va hacia fuera (respecto a la pared)
                     if (vRelN > 0) {
-                        // Rebote normal (con pérdida)
-                        vRelNormal.multiplyScalar(-wallRestitution);
-                        // Fricción tangencial: la pared arrastra la bola
-                        vRelTangent.multiplyScalar(0.4);
-
-                        // Recomponer velocidad: vRel reflejada + velocidad de pared
-                        v.copy(vRelNormal).add(vRelTangent).add(wallVel);
+                        // Reflejo de la componente normal con perdida
+                        vRel.addScaledVector(normal, -(1 + wallRestitution) * vRelN);
                     }
+
+                    // Mantener deslizamiento tangencial: reduce poco la componente tangencial
+                    const tangent = vRel.clone().sub(normal.clone().multiplyScalar(vRel.dot(normal)));
+                    const tangentAfter = tangent.multiplyScalar(wallTangentialDamping);
+                    const normalAfter = normal.clone().multiplyScalar(vRel.dot(normal));
+
+                    // Recomponer velocidad: relativa corregida + velocidad local de pared
+                    v.copy(normalAfter).add(tangentAfter).add(wallVel);
+                    // Evita que las bolas "laman" la pared durante varios frames seguidos
+                    v.addScaledVector(normal, -wallDetachKick);
                 }
 
                 // Rotación visual proporcional a la velocidad
@@ -1302,6 +1312,9 @@
         let autoDrawEnabled = false;
         let autoDrawPaused = false;
         let autoDrawTimer = null;
+        let drawRevealTimer = null;
+        let drawFinalizeTimer = null;
+        let drawSessionId = 0;
         const AUTO_DRAW_INTERVAL_MS = 10000;
         const AUDIO_REPEAT_GAP_MS = 300;
         let activeRecorder = null;
@@ -1755,6 +1768,16 @@
         }
 
         function initGame() {
+            drawSessionId += 1;
+            if (drawRevealTimer) {
+                clearTimeout(drawRevealTimer);
+                drawRevealTimer = null;
+            }
+            if (drawFinalizeTimer) {
+                clearTimeout(drawFinalizeTimer);
+                drawFinalizeTimer = null;
+            }
+            stopSpin();
             numbers = Array.from({length: BALL_COUNT}, (_, i) => i + 1);
             calledNumbers = [];
             currentBall = null;
@@ -1805,6 +1828,8 @@
                 return false;
             }
             isDrawing = true;
+            drawSessionId += 1;
+            const activeSession = drawSessionId;
 
             const randomIndex = Math.floor(Math.random() * numbers.length);
             const number = numbers[randomIndex];
@@ -1819,7 +1844,9 @@
             startSpin();
 
             // Tras 2.2s: detener el bombo, retirar bola del bombo y mostrar la nueva
-            setTimeout(() => {
+            if (drawRevealTimer) clearTimeout(drawRevealTimer);
+            drawRevealTimer = setTimeout(() => {
+                if (activeSession !== drawSessionId) return;
                 stopSpin();
                 removeBallFromCage(number);
                 ballDisplay.textContent = number;
@@ -1836,13 +1863,17 @@
             }, 2200);
 
             // Tras 4s: marcar el número en la cuadrícula y volver a idle
-            setTimeout(() => {
+            if (drawFinalizeTimer) clearTimeout(drawFinalizeTimer);
+            drawFinalizeTimer = setTimeout(() => {
+                if (activeSession !== drawSessionId) return;
                 const cell = document.getElementById(`num-${number}`);
                 if (cell) cell.classList.add('called');
                 ballDisplay.classList.remove('calling');
                 ballDisplay.classList.add('idle');
                 ballDisplay.style.opacity = '';
                 isDrawing = false;
+                drawRevealTimer = null;
+                drawFinalizeTimer = null;
             }, 4000);
             updateStats();
 
