@@ -46,6 +46,35 @@
         }
 
         .container { max-width: 1600px; margin: 0 auto; padding: 40px 20px; position: relative; z-index: 1; }
+        .settings-fab {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 52px;
+            height: 52px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.9), rgba(255, 51, 102, 0.9));
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+            transition: all 0.3s ease;
+            z-index: 8;
+        }
+        .settings-fab:hover {
+            transform: translateY(-2px) rotate(15deg);
+            border-color: rgba(255,255,255,0.25);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+        }
+        .settings-fab-icon {
+            font-size: 26px;
+            line-height: 1;
+            font-weight: 700;
+            transform: translateY(-1px);
+        }
 
         header { text-align: center; margin-bottom: 60px; animation: fadeInDown 0.8s ease-out; }
 
@@ -102,9 +131,6 @@
                 radial-gradient(ellipse at 50% 90%, rgba(0, 212, 255, 0.10) 0%, transparent 55%),
                 linear-gradient(180deg, #0d1230 0%, #060818 100%);
             cursor: grab;
-            touch-action: none;
-            -ms-touch-action: none;
-            user-select: none;
         }
 
         #bomboCanvas:active { cursor: grabbing; }
@@ -209,6 +235,13 @@
         /* ====== RESTO DE UI ====== */
         .controls { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .controls button { min-width: 230px; }
+        .auto-draw-desktop-only {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .auto-draw-desktop-only button { min-width: 230px; }
 
         button {
             padding: 18px 36px;
@@ -427,6 +460,188 @@
 
         .called-number:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(255,215,0,0.5); }
 
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(10,14,39,0.95);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active { display: flex; animation: fadeInModal 0.3s ease-out; }
+
+        @keyframes fadeInModal {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 28px;
+            border: 1px solid var(--border-color);
+            padding: 48px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.4s ease-out;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-content h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal-content > p { color: var(--text-secondary); margin-bottom: 32px; line-height: 1.6; }
+
+        .backup-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .audio-config {
+            margin-bottom: 20px;
+            padding: 24px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .audio-config:hover { border-color: rgba(255,255,255,0.2); }
+
+        .audio-config label {
+            display: block;
+            margin-bottom: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.05rem;
+        }
+
+        .audio-config input[type="file"] { display: none; }
+
+        .file-upload-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--accent-secondary), #0099cc);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+            font-size: 0.95rem;
+        }
+
+        .file-upload-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,212,255,0.4); }
+
+        .file-record-btn {
+            display: inline-block;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+            font-size: 0.95rem;
+            border: none;
+        }
+
+        .file-record-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(22,163,74,0.4); }
+
+        .file-record-btn.recording {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            box-shadow: 0 6px 20px rgba(220,38,38,0.4);
+        }
+
+        .file-delete-btn {
+            display: inline-block;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #8b1a3a, #6f1630);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+            font-size: 0.95rem;
+            border: none;
+        }
+
+        .file-delete-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,51,102,0.35); }
+
+        .file-delete-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .file-preview-btn {
+            display: inline-block;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-right: 12px;
+            font-size: 0.95rem;
+            border: none;
+        }
+
+        .file-preview-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,0.35); }
+
+        .file-preview-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .audio-status { display: inline-block; color: #48bb78; font-weight: 600; font-size: 0.95rem; }
+        .audio-status.empty { color: var(--text-secondary); }
+
+        .close-modal {
+            background: linear-gradient(135deg, var(--accent-primary), #d5006d);
+            color: white;
+            padding: 16px 40px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin-top: 24px;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 24px rgba(255,51,102,0.3);
+        }
+
+        .close-modal:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(255,51,102,0.5); }
+
+        .number-list { max-height: 450px; overflow-y: auto; }
+        .number-list::-webkit-scrollbar { width: 8px; }
+        .number-list::-webkit-scrollbar-track { background: var(--bg-primary); border-radius: 10px; }
+        .number-list::-webkit-scrollbar-thumb { background: var(--accent-primary); border-radius: 10px; }
+
         @media (max-width: 1200px) {
             .main-grid { grid-template-columns: 1fr; }
             .sidebar { flex-direction: row; }
@@ -441,6 +656,10 @@
             .numbers-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
             .number-cell { font-size: 1.4rem; }
             .sidebar { flex-direction: column; }
+            .modal-content { padding: 32px 24px; }
+            .settings-fab { top: 10px; right: 10px; width: 46px; height: 46px; }
+            .settings-fab-icon { font-size: 22px; }
+            .auto-draw-desktop-only { display: none !important; }
         }
 
         @keyframes confettiFall {
@@ -456,6 +675,9 @@
 
         <div class="main-grid">
             <div class="card bombo-section">
+                <button class="settings-fab" type="button" onclick="openConfig()" aria-label="Configurar audios" title="Configurar audios">
+                    <span class="settings-fab-icon" aria-hidden="true">⚙</span>
+                </button>
                 <div class="bombo-stage">
                     <canvas id="bomboCanvas"></canvas>
                     <div class="stage-overlay"></div>
@@ -469,8 +691,10 @@
 
                 <div class="controls">
                     <button class="btn-call" id="callBtn" onclick="callNumber()">Lanzamiento Manual</button>
-                    <button class="btn-call" id="autoBtn" onclick="startAutoDraw()">Lanzamiento Automatico</button>
-                    <button class="btn-secondary" id="pauseBtn" onclick="toggleAutoPause()" disabled>Pausar Auto</button>
+                    <div class="auto-draw-desktop-only">
+                        <button class="btn-call" id="autoBtn" onclick="startAutoDraw()">Lanzamiento Automatico</button>
+                        <button class="btn-secondary" id="pauseBtn" onclick="toggleAutoPause()" disabled>Pausar Auto</button>
+                    </div>
                     <button class="btn-secondary" onclick="resetGame()">Reiniciar</button>
                 </div>
 
@@ -502,6 +726,21 @@
         </div>
     </div>
 
+    <div class="modal" id="configModal">
+        <div class="modal-content">
+            <h2>Configurar Audios</h2>
+            <p>Sube un archivo de audio para cada número. Cuando se cante esa bola, se reproducirá tu voz grabada.</p>
+            <div class="backup-actions">
+                <button class="btn-secondary" type="button" onclick="exportAudioBackup()">Exportar Todos</button>
+                <button class="btn-secondary" type="button" onclick="triggerImportBackup()">Importar Todos</button>
+                <button class="btn-danger" type="button" onclick="removeAllAudios()">Eliminar Todos</button>
+                <input id="importBackupInput" type="file" accept=".json,application/json" style="display:none" onchange="importAudioBackup(event)">
+            </div>
+            <div class="number-list" id="audioConfigList"></div>
+            <button class="close-modal" onclick="closeConfig()">Cerrar</button>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // ============================================================
@@ -513,7 +752,6 @@
         let cameraAngle = 0, cameraTilt = 0.15, cameraDistance = 9;
         let isDragging = false, dragStart = { x: 0, y: 0 };
         let autoRotate = false;
-        let lastTouchEndTs = 0;
         let clock;
 
         const BALL_COUNT = 90;
@@ -552,13 +790,9 @@
             canvas.addEventListener('mousemove', onDragMove);
             canvas.addEventListener('mouseup', onDragEnd);
             canvas.addEventListener('mouseleave', onDragEnd);
-            canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+            canvas.addEventListener('touchstart', onTouchStart, { passive: true });
             canvas.addEventListener('touchmove', onTouchMove, { passive: false });
-            canvas.addEventListener('touchend', onTouchEnd, { passive: false });
-            canvas.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
-            canvas.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
-            canvas.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
-            canvas.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+            canvas.addEventListener('touchend', onDragEnd);
 
             window.addEventListener('resize', onResize);
 
@@ -1005,7 +1239,6 @@
 
         // === Drag para girar cámara ===
         function onDragStart(e) {
-            if (autoDrawEnabled && !autoDrawPaused) return;
             isDragging = true;
             autoRotate = false;
             dragStart.x = e.clientX;
@@ -1023,11 +1256,6 @@
         }
         function onDragEnd() { isDragging = false; }
         function onTouchStart(e) {
-            if (autoDrawEnabled && !autoDrawPaused) {
-                e.preventDefault();
-                return;
-            }
-            e.preventDefault();
             if (e.touches.length === 1) {
                 isDragging = true;
                 autoRotate = false;
@@ -1045,14 +1273,6 @@
             dragStart.x = e.touches[0].clientX;
             dragStart.y = e.touches[0].clientY;
             updateCameraPosition();
-        }
-        function onTouchEnd(e) {
-            const now = Date.now();
-            if (now - lastTouchEndTs < 300) {
-                e.preventDefault();
-            }
-            lastTouchEndTs = now;
-            onDragEnd();
         }
 
         // === Loop principal ===
@@ -1097,7 +1317,7 @@
         // ============================================================
         //   LÓGICA DEL JUEGO (preservada del original)
         // ============================================================
-        let numbers = [], calledNumbers = [], currentBall = null;
+        let numbers = [], calledNumbers = [], audioFiles = {}, audioMeta = {}, currentBall = null;
         let isDrawing = false;
         let autoDrawEnabled = false;
         let autoDrawPaused = false;
@@ -1105,123 +1325,27 @@
         let drawRevealTimer = null;
         let drawFinalizeTimer = null;
         let drawSessionId = 0;
-        let audioLoadingInProgress = false;
         const AUTO_DRAW_INTERVAL_MS = 10000;
         const AUDIO_REPEAT_GAP_MS = 300;
+        let activeRecorder = null;
+        let activeRecorderNumber = null;
+        let activeRecorderChunks = [];
+        let sharedMicStream = null;
+        let micPermissionBlocked = false;
         let activePlaybackAudio = null;
         let audioUnlocked = false;
         let audioCtx = null;
         let audioPlaybackQueue = Promise.resolve();
-        let preloadedAudioByNumber = {};
-        /** Buffers decodificados para iOS/Safari (play diferido fuera del gesto del usuario). */
-        let audioBufferCache = {};
-        let audioBufferDecodePromises = {};
-        /** audios/1.mp3 ... audios/90.mp3 (archivos del proyecto) */
-        let staticAudioFiles = {};
 
-        const STATIC_AUDIO_DIR = 'audios';
-        const STATIC_AUDIO_EXT = 'mp3';
+        // ============================================================
+        //   PERSISTENCIA DE AUDIOS (IndexedDB)
+        // ============================================================
+        const AUDIO_DB_NAME = 'bingo3dAudioDB';
+        const AUDIO_DB_VERSION = 1;
+        const AUDIO_STORE_NAME = 'audioByNumber';
         const SILENT_AUDIO_DATA_URI = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-
-        function getStaticAudioUrl(number) {
-            const pad = String(number).padStart(2, '0');
-            return `${STATIC_AUDIO_DIR}/${pad}-grabacion-${number}.${STATIC_AUDIO_EXT}`;
-        }
-
-        function getEffectiveAudioUrl(number) {
-            return staticAudioFiles[number] || null;
-        }
-
-        function decodeAudioDataAsync(ctx, arrayBuffer) {
-            const data = arrayBuffer.slice(0);
-            try {
-                const maybePromise = ctx.decodeAudioData(data);
-                if (maybePromise && typeof maybePromise.then === 'function') return maybePromise;
-            } catch (_) { /* navegadores antiguos: solo API con callbacks */ }
-            const data2 = arrayBuffer.slice(0);
-            return new Promise((resolve, reject) => {
-                try {
-                    ctx.decodeAudioData(data2, resolve, reject);
-                } catch (e) {
-                    reject(e);
-                }
-            });
-        }
-
-        async function ensureBallAudioBuffer(number) {
-            const url = getEffectiveAudioUrl(number);
-            if (!url) return null;
-            if (audioBufferCache[number]) return audioBufferCache[number];
-            if (audioBufferDecodePromises[number]) return audioBufferDecodePromises[number];
-            audioBufferDecodePromises[number] = (async () => {
-                try {
-                    await unlockAudioPlayback();
-                    if (!audioCtx) return null;
-                    if (audioCtx.state === 'suspended') await audioCtx.resume();
-                    const res = await fetch(url, { cache: 'force-cache' });
-                    if (!res.ok) return null;
-                    const raw = await res.arrayBuffer();
-                    const buf = await decodeAudioDataAsync(audioCtx, raw);
-                    audioBufferCache[number] = buf;
-                    return buf;
-                } catch (_) {
-                    return null;
-                } finally {
-                    delete audioBufferDecodePromises[number];
-                }
-            })();
-            return audioBufferDecodePromises[number];
-        }
-
-        async function tryPlayBallWebAudio(number) {
-            const buf = await ensureBallAudioBuffer(number);
-            if (!buf || !audioCtx) return false;
-            if (audioCtx.state === 'suspended') {
-                try {
-                    await audioCtx.resume();
-                } catch (_) {
-                    return false;
-                }
-                if (audioCtx.state !== 'running') return false;
-            }
-            try {
-                const src = audioCtx.createBufferSource();
-                src.buffer = buf;
-                src.connect(audioCtx.destination);
-                src.start(0);
-                return true;
-            } catch (_) {
-                return false;
-            }
-        }
-
-        function playBallAudioAfterReveal(number) {
-            void tryPlayBallWebAudio(number).then((ok) => {
-                if (!ok) playBallAudioOnce(number);
-            });
-        }
-
-        /** Repetir audio desde un clic (gesto de usuario): Web Audio + fallback HTML5. */
-        function playBallSoundOnDemand(number) {
-            const url = getEffectiveAudioUrl(number);
-            if (!url) return;
-            void (async () => {
-                await unlockAudioPlayback();
-                const ok = await tryPlayBallWebAudio(number);
-                if (!ok) {
-                    const a = new Audio(url);
-                    a.playsInline = true;
-                    void a.play().catch(() => {});
-                }
-            })();
-        }
-
-        function loadStaticProjectAudios() {
-            staticAudioFiles = {};
-            for (let n = 1; n <= BALL_COUNT; n++) {
-                staticAudioFiles[n] = getStaticAudioUrl(n);
-            }
-        }
+        const IS_IOS_DEVICE = /iPad|iPhone|iPod/.test(navigator.userAgent)
+            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
         async function unlockAudioPlayback() {
             if (audioUnlocked) return true;
@@ -1236,7 +1360,9 @@
                     unlockedByContext = audioCtx.state === 'running';
                 }
 
-                const firstLoadedAudio = staticAudioFiles[1] || getStaticAudioUrl(1);
+                // En algunos móviles el data URI silencioso falla.
+                // Preferimos "priming" con un audio real cargado, y si no hay, fallback silencioso.
+                const firstLoadedAudio = Object.values(audioFiles)[0];
                 const primer = new Audio(firstLoadedAudio || SILENT_AUDIO_DATA_URI);
                 primer.muted = true;
                 primer.volume = 0;
@@ -1257,7 +1383,7 @@
 
         function primeAudioFromUserGesture() {
             if (audioUnlocked) return;
-            const firstLoadedAudio = staticAudioFiles[1] || getStaticAudioUrl(1);
+            const firstLoadedAudio = Object.values(audioFiles)[0];
             const primer = new Audio(firstLoadedAudio || SILENT_AUDIO_DATA_URI);
             primer.muted = true;
             primer.volume = 0;
@@ -1290,30 +1416,233 @@
             window.addEventListener('keydown', tryUnlockOnce);
         }
 
-        function clearPreloadedAudios() {
-            Object.values(preloadedAudioByNumber).forEach(audio => {
-                try {
-                    audio.pause();
-                    audio.src = '';
-                    audio.load();
-                } catch (_) {}
+        function openAudioDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(AUDIO_DB_NAME, AUDIO_DB_VERSION);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(AUDIO_STORE_NAME)) {
+                        db.createObjectStore(AUDIO_STORE_NAME, { keyPath: 'number' });
+                    }
+                };
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
             });
-            preloadedAudioByNumber = {};
         }
 
-        async function preloadLoadedAudios() {
-            clearPreloadedAudios();
-            for (let n = 1; n <= BALL_COUNT; n++) {
-                const url = getEffectiveAudioUrl(n);
-                if (!url) continue;
-                const audio = new Audio(url);
-                audio.preload = 'auto';
-                audio.playsInline = true;
-                preloadedAudioByNumber[n] = audio;
-                try {
-                    audio.load();
-                } catch (_) {}
+        async function saveAudioToDB(number, file) {
+            const db = await openAudioDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(AUDIO_STORE_NAME, 'readwrite');
+                const store = tx.objectStore(AUDIO_STORE_NAME);
+                store.put({
+                    number,
+                    blob: file,
+                    name: file.name || `audio-${number}`,
+                    type: file.type || 'audio/mpeg',
+                    updatedAt: Date.now()
+                });
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            });
+        }
+
+        async function loadAudioFilesFromDB() {
+            const db = await openAudioDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(AUDIO_STORE_NAME, 'readonly');
+                const store = tx.objectStore(AUDIO_STORE_NAME);
+                const request = store.getAll();
+
+                request.onsuccess = () => {
+                    const rows = request.result || [];
+                    rows.forEach(row => {
+                        if (!row || typeof row.number !== 'number' || !row.blob) return;
+                        if (audioFiles[row.number]) URL.revokeObjectURL(audioFiles[row.number]);
+                        audioFiles[row.number] = URL.createObjectURL(row.blob);
+                        audioMeta[row.number] = {
+                            name: row.name || `audio-${row.number}`,
+                            type: row.type || row.blob.type || 'audio/mpeg',
+                            updatedAt: row.updatedAt || Date.now()
+                        };
+                    });
+                    resolve();
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getAllAudioRowsFromDB() {
+            const db = await openAudioDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(AUDIO_STORE_NAME, 'readonly');
+                const store = tx.objectStore(AUDIO_STORE_NAME);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function replaceAllAudioRowsInDB(rows) {
+            const db = await openAudioDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(AUDIO_STORE_NAME, 'readwrite');
+                const store = tx.objectStore(AUDIO_STORE_NAME);
+                store.clear();
+                rows.forEach(row => store.put(row));
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            });
+        }
+
+        function blobToDataURL(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        function dataURLToBlob(dataURL) {
+            const [meta, content] = dataURL.split(',');
+            const mimeMatch = /data:(.*?);base64/.exec(meta || '');
+            const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+            const binary = atob(content || '');
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return new Blob([bytes], { type: mime });
+        }
+
+        async function exportAudioBackup() {
+            try {
+                const rows = await getAllAudioRowsFromDB();
+                const items = [];
+                for (const row of rows) {
+                    if (!row || typeof row.number !== 'number' || !row.blob) continue;
+                    items.push({
+                        number: row.number,
+                        name: row.name || `audio-${row.number}`,
+                        type: row.type || row.blob.type || 'audio/mpeg',
+                        updatedAt: row.updatedAt || Date.now(),
+                        dataUrl: await blobToDataURL(row.blob)
+                    });
+                }
+
+                const payload = {
+                    version: 1,
+                    exportedAt: new Date().toISOString(),
+                    count: items.length,
+                    items
+                };
+
+                const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+                a.href = url;
+                a.download = `bingo-audios-backup-${stamp}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error('Error al exportar backup:', err);
+                alert('No se pudo exportar el backup de audios.');
             }
+        }
+
+        function triggerImportBackup() {
+            const input = document.getElementById('importBackupInput');
+            if (input) input.click();
+        }
+
+        async function importAudioBackup(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const payload = JSON.parse(text);
+                if (!payload || !Array.isArray(payload.items)) {
+                    throw new Error('Formato de backup invalido');
+                }
+
+                const rows = payload.items
+                    .filter(item => item && typeof item.number === 'number' && typeof item.dataUrl === 'string')
+                    .map(item => ({
+                        number: item.number,
+                        blob: dataURLToBlob(item.dataUrl),
+                        name: item.name || `audio-${item.number}`,
+                        type: item.type || 'audio/mpeg',
+                        updatedAt: item.updatedAt || Date.now()
+                    }));
+
+                // Limpiar URLs previas en memoria antes de recargar
+                Object.keys(audioFiles).forEach(key => {
+                    const n = Number(key);
+                    if (audioFiles[n]) URL.revokeObjectURL(audioFiles[n]);
+                });
+                audioFiles = {};
+                audioMeta = {};
+
+                await replaceAllAudioRowsInDB(rows);
+                await loadAudioFilesFromDB();
+                openConfig(); // refresca estados de botones/listado
+                alert(`Importacion completada: ${rows.length} audios cargados.`);
+            } catch (err) {
+                console.error('Error al importar backup:', err);
+                alert('No se pudo importar el archivo. Verifica que sea un backup valido.');
+            } finally {
+                event.target.value = '';
+            }
+        }
+
+        async function deleteAudioFromDB(number) {
+            const db = await openAudioDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(AUDIO_STORE_NAME, 'readwrite');
+                const store = tx.objectStore(AUDIO_STORE_NAME);
+                store.delete(number);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.onabort = () => reject(tx.error);
+            });
+        }
+
+        async function removeAllAudios() {
+            if (!confirm('¿Seguro que quieres eliminar TODOS los audios guardados?')) return;
+
+            try {
+                stopActivePlayback();
+
+                Object.keys(audioFiles).forEach(key => {
+                    const n = Number(key);
+                    if (audioFiles[n]) URL.revokeObjectURL(audioFiles[n]);
+                });
+
+                audioFiles = {};
+                audioMeta = {};
+
+                await replaceAllAudioRowsInDB([]);
+                openConfig(); // refresca toda la lista y estados del modal
+                alert('Se eliminaron todos los audios.');
+            } catch (err) {
+                console.error('Error al eliminar todos los audios:', err);
+                alert('No se pudieron eliminar todos los audios.');
+            }
+        }
+
+        function isMobileLayoutAutoDisabled() {
+            return typeof window.matchMedia === 'function'
+                && window.matchMedia('(max-width: 768px)').matches;
+        }
+
+        function syncAutoDrawForViewport() {
+            if (isMobileLayoutAutoDisabled() && autoDrawEnabled) stopAutoDraw();
         }
 
         function stopAutoDraw() {
@@ -1342,21 +1671,17 @@
             const callBtn = document.getElementById('callBtn');
             if (!callBtn) return;
             const blockedByRunningAuto = autoDrawEnabled && !autoDrawPaused;
-            callBtn.disabled = audioLoadingInProgress || blockedByRunningAuto || numbers.length === 0;
-            callBtn.textContent = audioLoadingInProgress
-                ? 'Cargando audios...'
-                : blockedByRunningAuto
+            callBtn.disabled = blockedByRunningAuto || numbers.length === 0;
+            callBtn.textContent = blockedByRunningAuto
                 ? 'Manual bloqueado (Auto activo)'
                 : 'Lanzamiento Manual';
         }
 
-        function updateAutoButtonState() {
-            const autoBtn = document.getElementById('autoBtn');
-            if (!autoBtn) return;
-            autoBtn.disabled = audioLoadingInProgress || autoDrawEnabled || numbers.length === 0;
-        }
-
         function runAutoDrawCycle() {
+            if (isMobileLayoutAutoDisabled()) {
+                stopAutoDraw();
+                return;
+            }
             if (!autoDrawEnabled || autoDrawPaused || numbers.length === 0) return;
             const started = callNumber(true);
             if (!autoDrawEnabled || autoDrawPaused || numbers.length === 0) return;
@@ -1364,7 +1689,7 @@
         }
 
         function startAutoDraw() {
-            if (audioLoadingInProgress) return;
+            if (isMobileLayoutAutoDisabled()) return;
             if (autoDrawEnabled || numbers.length === 0) return;
             // Importante en móvil: desbloquear audio desde el gesto del usuario
             // al pulsar "Lanzamiento Automatico", antes de los plays diferidos.
@@ -1374,8 +1699,10 @@
             autoDrawPaused = false;
             const autoBtn = document.getElementById('autoBtn');
             const pauseBtn = document.getElementById('pauseBtn');
-            if (autoBtn) autoBtn.classList.add('btn-success');
-            updateAutoButtonState();
+            if (autoBtn) {
+                autoBtn.disabled = true;
+                autoBtn.classList.add('btn-success');
+            }
             updateManualCallButtonState();
             if (pauseBtn) {
                 pauseBtn.disabled = false;
@@ -1388,6 +1715,7 @@
         }
 
         function toggleAutoPause() {
+            if (isMobileLayoutAutoDisabled()) return;
             if (!autoDrawEnabled) return;
             autoDrawPaused = !autoDrawPaused;
             const pauseBtn = document.getElementById('pauseBtn');
@@ -1498,17 +1826,115 @@
             return audioPlaybackQueue;
         }
 
+        function playBallAudioTwice(number) {
+            if (!audioFiles[number]) return;
+            // En iPhone/Safari, repetir dos veces en auto puede bloquear la cola.
+            // Priorizamos confiabilidad: 1 vez en iOS, 2 veces en el resto.
+            const repeatCount = IS_IOS_DEVICE ? 1 : 2;
+            void enqueueBallAudio(audioFiles[number], repeatCount);
+        }
+
         function playBallAudioOnce(number) {
-            const url = getEffectiveAudioUrl(number);
-            if (!url) return;
-            void enqueueBallAudio(url, 1);
+            if (!audioFiles[number]) return;
+            void enqueueBallAudio(audioFiles[number], 1);
+        }
+
+        async function setAudioForNumber(number, file) {
+            if (audioFiles[number]) URL.revokeObjectURL(audioFiles[number]);
+            audioFiles[number] = URL.createObjectURL(file);
+            audioMeta[number] = {
+                name: file.name || `audio-${number}`,
+                type: file.type || 'audio/mpeg',
+                updatedAt: Date.now()
+            };
+            await saveAudioToDB(number, file);
+
+            const status = document.getElementById(`status-${number}`);
+            if (status) {
+                status.className = 'audio-status';
+                status.textContent = `✓ Audio cargado (${audioMeta[number].name})`;
+            }
+
+            const audioInput = document.getElementById(`audio-${number}`);
+            const row = audioInput ? audioInput.parentElement : null;
+            if (row) {
+                const deleteBtn = row.querySelector('.file-delete-btn');
+                if (deleteBtn) deleteBtn.disabled = false;
+                const previewBtn = row.querySelector('.file-preview-btn');
+                if (previewBtn) previewBtn.disabled = false;
+            }
+        }
+
+        function updateRecordButtons() {
+            document.querySelectorAll('.file-record-btn').forEach(btn => {
+                const number = Number(btn.dataset.number);
+                const isCurrent = activeRecorder && number === activeRecorderNumber;
+                btn.classList.toggle('recording', Boolean(isCurrent));
+                btn.textContent = isCurrent ? 'Detener Grabacion' : 'Grabar Audio';
+            });
+        }
+
+        async function getSharedMicStream() {
+            if (sharedMicStream) return sharedMicStream;
+            if (micPermissionBlocked) throw new Error('MIC_BLOCKED');
+            sharedMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            return sharedMicStream;
+        }
+
+        async function toggleAudioRecording(number) {
+            if (activeRecorder && activeRecorderNumber === number) {
+                activeRecorder.stop();
+                return;
+            }
+
+            if (activeRecorder) {
+                alert('Ya hay una grabacion en curso. Detenla primero.');
+                return;
+            }
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+                alert('Tu navegador no soporta grabacion de audio.');
+                return;
+            }
+
+            try {
+                const stream = await getSharedMicStream();
+                activeRecorderChunks = [];
+
+                const recorder = new MediaRecorder(stream);
+                activeRecorder = recorder;
+                activeRecorderNumber = number;
+                updateRecordButtons();
+
+                recorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) activeRecorderChunks.push(event.data);
+                };
+
+                recorder.onstop = async () => {
+                    const mimeType = recorder.mimeType || 'audio/webm';
+                    const blob = new Blob(activeRecorderChunks, { type: mimeType });
+                    if (blob.size > 0) {
+                        const ext = mimeType.includes('ogg') ? 'ogg' : 'webm';
+                        const file = new File([blob], `grabacion-${number}.${ext}`, { type: mimeType });
+                        await setAudioForNumber(number, file);
+                    }
+                    activeRecorder = null;
+                    activeRecorderNumber = null;
+                    activeRecorderChunks = [];
+                    updateRecordButtons();
+                };
+
+                recorder.start();
+            } catch (err) {
+                console.error('Error al grabar audio:', err);
+                micPermissionBlocked = true;
+                alert('No se pudo acceder al microfono. Permite el microfono para grabar.');
+            }
         }
 
         function initGame() {
             drawSessionId += 1;
             audioPlaybackQueue = Promise.resolve();
-            audioBufferCache = {};
-            audioBufferDecodePromises = {};
             stopActivePlayback();
             if (drawRevealTimer) {
                 clearTimeout(drawRevealTimer);
@@ -1544,7 +1970,6 @@
                 }
                 buildBalls();
             }
-            void preloadLoadedAudios();
         }
 
         function renderNumbers() {
@@ -1562,7 +1987,10 @@
         }
 
         function callNumber(isAuto = false) {
-            if (audioLoadingInProgress) return false;
+            if (isAuto && isMobileLayoutAutoDisabled()) {
+                stopAutoDraw();
+                return false;
+            }
             if (!isAuto && autoDrawEnabled && !autoDrawPaused) return false;
             if (isDrawing) return false;
             if (!isAuto) {
@@ -1582,8 +2010,6 @@
             const randomIndex = Math.floor(Math.random() * numbers.length);
             const number = numbers[randomIndex];
             numbers.splice(randomIndex, 1);
-            // Precargar el MP3 durante la animación (~2.2s) para que Web Audio esté listo al revelar (iOS).
-            void ensureBallAudioBuffer(number);
 
             const ballDisplay = document.getElementById('ballDisplay');
             ballDisplay.classList.remove('calling', 'idle');
@@ -1605,8 +2031,9 @@
                 currentBall = number;
                 updateStats();
                 updateCalledList();
-                // HTMLAudio dentro de setTimeout falla en iOS; Web Audio con contexto desbloqueado sí.
-                playBallAudioAfterReveal(number);
+                // Auto y manual usan exactamente la misma ruta de audio
+                // para mantener el mismo comportamiento/tiempos de carga.
+                playBallAudioOnce(number);
             }, 2200);
 
             // Tras 4s: marcar el número en la cuadrícula y volver a idle
@@ -1633,8 +2060,9 @@
         }
 
         function manualCall(number) {
-            if (!calledNumbers.includes(number)) return;
-            playBallSoundOnDemand(number);
+            if (calledNumbers.includes(number) && audioFiles[number]) {
+                new Audio(audioFiles[number]).play();
+            }
         }
 
         function updateStats() {
@@ -1650,13 +2078,124 @@
                 const span = document.createElement('span');
                 span.className = 'called-number';
                 span.textContent = num;
-                span.onclick = () => playBallSoundOnDemand(num);
+                span.onclick = () => { if (audioFiles[num]) new Audio(audioFiles[num]).play(); };
                 list.appendChild(span);
             });
         }
 
         function resetGame() {
             if (confirm('¿Seguro que quieres reiniciar el juego?')) initGame();
+        }
+
+        function openConfig() {
+            const modal = document.getElementById('configModal');
+            const list = document.getElementById('audioConfigList');
+            list.innerHTML = '';
+            
+            for (let i = 1; i <= BALL_COUNT; i++) {
+                const div = document.createElement('div');
+                div.className = 'audio-config';
+                
+                const label = document.createElement('label');
+                label.textContent = `Número ${i}`;
+                
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'audio/*';
+                input.id = `audio-${i}`;
+                input.onchange = (e) => handleAudioUpload(i, e);
+                
+                const uploadBtn = document.createElement('label');
+                uploadBtn.className = 'file-upload-btn';
+                uploadBtn.textContent = 'Subir Audio';
+                uploadBtn.htmlFor = `audio-${i}`;
+
+                const recordBtn = document.createElement('button');
+                recordBtn.type = 'button';
+                recordBtn.className = 'file-record-btn';
+                recordBtn.textContent = 'Grabar Audio';
+                recordBtn.dataset.number = String(i);
+                recordBtn.onclick = async () => {
+                    await toggleAudioRecording(i);
+                };
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.className = 'file-delete-btn';
+                deleteBtn.textContent = 'Eliminar';
+                deleteBtn.disabled = !audioFiles[i];
+                deleteBtn.onclick = async () => {
+                    await removeAudioForNumber(i);
+                };
+
+                const previewBtn = document.createElement('button');
+                previewBtn.type = 'button';
+                previewBtn.className = 'file-preview-btn';
+                previewBtn.textContent = 'Vista previa';
+                previewBtn.disabled = !audioFiles[i];
+                previewBtn.onclick = () => {
+                    if (!audioFiles[i]) return;
+                    const audio = new Audio(audioFiles[i]);
+                    audio.play().catch(() => {});
+                };
+                
+                const status = document.createElement('span');
+                status.className = audioFiles[i] ? 'audio-status' : 'audio-status empty';
+                status.textContent = audioFiles[i]
+                    ? `✓ Audio cargado (${audioMeta[i]?.name || 'archivo guardado'})`
+                    : 'Sin audio';
+                status.id = `status-${i}`;
+                
+                div.appendChild(label);
+                div.appendChild(input);
+                div.appendChild(uploadBtn);
+                div.appendChild(recordBtn);
+                div.appendChild(deleteBtn);
+                div.appendChild(previewBtn);
+                div.appendChild(status);
+                list.appendChild(div);
+            }
+            updateRecordButtons();
+            modal.classList.add('active');
+        }
+
+        function closeConfig() {
+            if (activeRecorder) {
+                activeRecorder.stop();
+            }
+            document.getElementById('configModal').classList.remove('active');
+        }
+
+        async function handleAudioUpload(number, event) {
+            const file = event.target.files[0];
+            if (file) {
+                await setAudioForNumber(number, file);
+            }
+        }
+
+        async function removeAudioForNumber(number) {
+            if (audioFiles[number]) {
+                URL.revokeObjectURL(audioFiles[number]);
+                delete audioFiles[number];
+            }
+            delete audioMeta[number];
+            await deleteAudioFromDB(number);
+
+            const status = document.getElementById(`status-${number}`);
+            if (status) {
+                status.className = 'audio-status empty';
+                status.textContent = 'Sin audio';
+            }
+
+            const audioInput = document.getElementById(`audio-${number}`);
+            if (audioInput) audioInput.value = '';
+            const row = audioInput ? audioInput.parentElement : null;
+            if (row) {
+                const deleteBtn = row.querySelector('.file-delete-btn');
+                if (deleteBtn) deleteBtn.disabled = true;
+                const previewBtn = row.querySelector('.file-preview-btn');
+                if (previewBtn) previewBtn.disabled = true;
+            }
         }
 
         function createConfetti() {
@@ -1681,24 +2220,30 @@
             }
         }
 
+        window.onclick = function(event) {
+            const modal = document.getElementById('configModal');
+            if (event.target === modal) closeConfig();
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (sharedMicStream) {
+                sharedMicStream.getTracks().forEach(track => track.stop());
+                sharedMicStream = null;
+            }
+        });
+
         // Inicialización
         window.addEventListener('DOMContentLoaded', async () => {
             setupAudioUnlock();
-            audioLoadingInProgress = true;
-            updateManualCallButtonState();
-            updateAutoButtonState();
             try {
-                loadStaticProjectAudios();
-                await preloadLoadedAudios();
+                await loadAudioFilesFromDB();
             } catch (err) {
-                console.error('No se pudieron precargar audios:', err);
-            } finally {
-                audioLoadingInProgress = false;
-                updateManualCallButtonState();
-                updateAutoButtonState();
+                console.error('No se pudieron cargar audios guardados:', err);
             }
             initThree();
             initGame();
+            syncAutoDrawForViewport();
+            window.addEventListener('resize', syncAutoDrawForViewport);
         });
     </script>
 </body>
