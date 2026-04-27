@@ -1450,9 +1450,16 @@
 
                 request.onsuccess = () => {
                     const rows = request.result || [];
+                    // Reconstruir desde cero para evitar referencias viejas/invalidas
+                    Object.keys(audioFiles).forEach(key => {
+                        const n = Number(key);
+                        if (audioFiles[n]) URL.revokeObjectURL(audioFiles[n]);
+                    });
+                    audioFiles = {};
+                    audioMeta = {};
+
                     rows.forEach(row => {
                         if (!row || typeof row.number !== 'number' || !row.blob) return;
-                        if (audioFiles[row.number]) URL.revokeObjectURL(audioFiles[row.number]);
                         audioFiles[row.number] = URL.createObjectURL(row.blob);
                         audioMeta[row.number] = {
                             name: row.name || `audio-${row.number}`,
@@ -2145,6 +2152,8 @@
             }
             document.getElementById('configModal').classList.remove('active');
             stopAutoDraw();
+            stopActivePlayback();
+            audioPlaybackQueue = Promise.resolve();
             audioLoadingInProgress = true;
             updateManualCallButtonState();
             updateAutoButtonState();
