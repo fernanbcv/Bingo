@@ -718,6 +718,7 @@
             <div class="backup-actions">
                 <button class="btn-secondary" type="button" onclick="exportAudioBackup()">Exportar Todos</button>
                 <button class="btn-secondary" type="button" onclick="triggerImportBackup()">Importar Todos</button>
+                <button class="btn-danger" type="button" onclick="removeAllAudios()">Eliminar Todos</button>
                 <input id="importBackupInput" type="file" accept=".json,application/json" style="display:none" onchange="importAudioBackup(event)">
             </div>
             <div class="number-list" id="audioConfigList"></div>
@@ -1512,6 +1513,29 @@
                 tx.onerror = () => reject(tx.error);
                 tx.onabort = () => reject(tx.error);
             });
+        }
+
+        async function removeAllAudios() {
+            if (!confirm('¿Seguro que quieres eliminar TODOS los audios guardados?')) return;
+
+            try {
+                stopActivePlayback();
+
+                Object.keys(audioFiles).forEach(key => {
+                    const n = Number(key);
+                    if (audioFiles[n]) URL.revokeObjectURL(audioFiles[n]);
+                });
+
+                audioFiles = {};
+                audioMeta = {};
+
+                await replaceAllAudioRowsInDB([]);
+                openConfig(); // refresca toda la lista y estados del modal
+                alert('Se eliminaron todos los audios.');
+            } catch (err) {
+                console.error('Error al eliminar todos los audios:', err);
+                alert('No se pudieron eliminar todos los audios.');
+            }
         }
 
         function stopAutoDraw() {
