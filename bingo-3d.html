@@ -1715,7 +1715,7 @@
             activePlaybackAudio = null;
         }
 
-        function waitForAudioToFinish(audio) {
+        function waitForAudioToFinish(audio, maxWaitMs = 12000) {
             return new Promise((resolve) => {
                 let done = false;
                 let timeoutId = null;
@@ -1733,7 +1733,7 @@
                 audio.onended = finish;
                 audio.onerror = finish;
                 // Failsafe para móviles que a veces no disparan ended/error
-                timeoutId = setTimeout(finish, 12000);
+                timeoutId = setTimeout(finish, maxWaitMs);
             });
         }
 
@@ -1745,25 +1745,31 @@
             const interruptCurrent = options.interruptCurrent !== false;
             await unlockAudioPlayback();
             if (interruptCurrent) stopActivePlayback();
-            const audio = new Audio(url);
-            audio.preload = 'auto';
-            audio.playsInline = true;
-            activePlaybackAudio = audio;
 
             for (let i = 0; i < times; i++) {
-                if (activePlaybackAudio !== audio) break;
-                audio.currentTime = 0;
+                // iOS Safari puede colgarse al reusar el mismo elemento Audio.
+                // Crear una instancia por repetición evita que se "pierda" la siguiente bola.
+                const audio = new Audio(url);
+                audio.preload = 'auto';
+                audio.playsInline = true;
+                activePlaybackAudio = audio;
                 try {
                     await audio.play();
-                    await waitForAudioToFinish(audio);
+                    const maxWaitMs = Number.isFinite(audio.duration) && audio.duration > 0
+                        ? Math.min(Math.max((audio.duration * 1000) + 1200, 2500), 12000)
+                        : 12000;
+                    await waitForAudioToFinish(audio, maxWaitMs);
                     if (i < times - 1) await waitMs(AUDIO_REPEAT_GAP_MS);
                 } catch (_) {
                     const unlocked = await unlockAudioPlayback();
                     if (unlocked) {
                         try {
-                            audio.currentTime = 0;
-                            await audio.play();
-                            await waitForAudioToFinish(audio);
+                            const retryAudio = new Audio(url);
+                            retryAudio.preload = 'auto';
+                            retryAudio.playsInline = true;
+                            activePlaybackAudio = retryAudio;
+                            await retryAudio.play();
+                            await waitForAudioToFinish(retryAudio, 12000);
                             if (i < times - 1) await waitMs(AUDIO_REPEAT_GAP_MS);
                             continue;
                         } catch (_) {}
@@ -1773,6 +1779,7 @@
                         const retry = new Audio(url);
                         retry.preload = 'auto';
                         retry.playsInline = true;
+                        activePlaybackAudio = retry;
                         await retry.play();
                         await waitForAudioToFinish(retry);
                         if (i < times - 1) await waitMs(AUDIO_REPEAT_GAP_MS);
