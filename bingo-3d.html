@@ -1369,6 +1369,26 @@
             }
         }
 
+        function primeAudioFromUserGesture() {
+            if (audioUnlocked) return;
+            const firstLoadedAudio = Object.values(audioFiles)[0];
+            const primer = new Audio(firstLoadedAudio || SILENT_AUDIO_DATA_URI);
+            primer.muted = true;
+            primer.volume = 0;
+            primer.preload = 'auto';
+            primer.playsInline = true;
+            const playPromise = primer.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                playPromise
+                    .then(() => {
+                        primer.pause();
+                        primer.currentTime = 0;
+                        audioUnlocked = true;
+                    })
+                    .catch(() => {});
+            }
+        }
+
         function setupAudioUnlock() {
             const tryUnlockOnce = () => {
                 void unlockAudioPlayback().finally(() => {
@@ -1617,12 +1637,23 @@
                 autoBtn.disabled = false;
                 autoBtn.classList.remove('btn-success');
             }
+            updateManualCallButtonState();
             if (pauseBtn) {
                 pauseBtn.disabled = true;
                 pauseBtn.textContent = 'Pausar Auto';
                 pauseBtn.classList.remove('btn-success');
                 pauseBtn.classList.add('btn-danger');
             }
+        }
+
+        function updateManualCallButtonState() {
+            const callBtn = document.getElementById('callBtn');
+            if (!callBtn) return;
+            const blockedByRunningAuto = autoDrawEnabled && !autoDrawPaused;
+            callBtn.disabled = blockedByRunningAuto || numbers.length === 0;
+            callBtn.textContent = blockedByRunningAuto
+                ? 'Manual bloqueado (Auto activo)'
+                : 'Lanzamiento Manual';
         }
 
         function runAutoDrawCycle() {
@@ -1636,6 +1667,7 @@
             if (autoDrawEnabled || numbers.length === 0) return;
             // Importante en móvil: desbloquear audio desde el gesto del usuario
             // al pulsar "Lanzamiento Automatico", antes de los plays diferidos.
+            primeAudioFromUserGesture();
             void unlockAudioPlayback();
             autoDrawEnabled = true;
             autoDrawPaused = false;
@@ -1645,6 +1677,7 @@
                 autoBtn.disabled = true;
                 autoBtn.classList.add('btn-success');
             }
+            updateManualCallButtonState();
             if (pauseBtn) {
                 pauseBtn.disabled = false;
                 pauseBtn.textContent = 'Pausar Auto';
@@ -1652,7 +1685,7 @@
                 pauseBtn.classList.add('btn-danger');
             }
             // Primer disparo inmediato y luego cada 10 segundos
-            runAutoDrawCycle();
+            setTimeout(runAutoDrawCycle, 120);
         }
 
         function toggleAutoPause() {
@@ -1664,6 +1697,7 @@
                 pauseBtn.classList.toggle('btn-success', autoDrawPaused);
                 pauseBtn.classList.toggle('btn-danger', !autoDrawPaused);
             }
+            updateManualCallButtonState();
             if (autoDrawPaused) {
                 if (autoDrawTimer) {
                     clearTimeout(autoDrawTimer);
@@ -1886,7 +1920,7 @@
             ballDisplay.textContent = '?';
             ballDisplay.classList.add('idle');
             ballDisplay.classList.remove('calling');
-            document.getElementById('callBtn').disabled = false;
+            updateManualCallButtonState();
 
             // Recargar todas las bolas en el bombo si la escena ya existe
             if (ballsGroup) {
@@ -1916,6 +1950,7 @@
         }
 
         function callNumber(isAuto = false) {
+            if (!isAuto && autoDrawEnabled && !autoDrawPaused) return false;
             if (isDrawing) return false;
             if (!isAuto) {
                 // Lanzamiento manual ocurre por gesto de usuario: aprovecha para desbloquear audio en móvil.
@@ -1978,7 +2013,7 @@
             updateStats();
 
             if (numbers.length === 0) {
-                document.getElementById('callBtn').disabled = true;
+                updateManualCallButtonState();
                 stopAutoDraw();
                 setTimeout(() => { alert('¡Juego terminado! 🎉'); createConfetti(); }, 4500);
             }
