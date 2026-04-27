@@ -1349,6 +1349,7 @@
         let audioUnlocked = false;
         let audioCtx = null;
         let audioPlaybackQueue = Promise.resolve();
+        let preloadedAudioByNumber = {};
 
         // ============================================================
         //   PERSISTENCIA DE AUDIOS (IndexedDB)
@@ -1495,6 +1496,34 @@
             });
         }
 
+        function clearPreloadedAudios() {
+            Object.values(preloadedAudioByNumber).forEach(audio => {
+                try {
+                    audio.pause();
+                    audio.src = '';
+                    audio.load();
+                } catch (_) {}
+            });
+            preloadedAudioByNumber = {};
+        }
+
+        async function preloadLoadedAudios() {
+            clearPreloadedAudios();
+            const entries = Object.entries(audioFiles);
+            for (let i = 0; i < entries.length; i++) {
+                const [numKey, url] = entries[i];
+                const n = Number(numKey);
+                if (!url || Number.isNaN(n)) continue;
+                const audio = new Audio(url);
+                audio.preload = 'auto';
+                audio.playsInline = true;
+                preloadedAudioByNumber[n] = audio;
+                try {
+                    audio.load();
+                } catch (_) {}
+            }
+        }
+
         async function getAllAudioRowsFromDB() {
             const db = await openAudioDB();
             return new Promise((resolve, reject) => {
@@ -1609,8 +1638,21 @@
                 audioFiles = {};
                 audioMeta = {};
 
+                // Hidratar en memoria DIRECTAMENTE desde el JSON importado
+                // (sin depender de releer la DB para tenerlos listos).
+                rows.forEach(row => {
+                    if (!row || typeof row.number !== 'number' || !row.blob) return;
+                    audioFiles[row.number] = URL.createObjectURL(row.blob);
+                    audioMeta[row.number] = {
+                        name: row.name || `audio-${row.number}`,
+                        type: row.type || row.blob.type || 'audio/mpeg',
+                        updatedAt: row.updatedAt || Date.now()
+                    };
+                });
+                await preloadLoadedAudios();
+
+                // Persistencia opcional para siguientes sesiones.
                 await replaceAllAudioRowsInDB(rows);
-                await loadAudioFilesFromDB();
                 openConfig(); // refresca estados de botones/listado
                 alert(`Importacion completada: ${rows.length} audios cargados.`);
             } catch (err) {
@@ -1982,6 +2024,7 @@
                 }
                 buildBalls();
             }
+            void preloadLoadedAudios();
         }
 
         function renderNumbers() {
@@ -2181,6 +2224,7 @@
             updateAutoButtonState();
             try {
                 await loadAudioFilesFromDB();
+                await preloadLoadedAudios();
             } catch (err) {
                 console.error('No se pudieron recargar audios al cerrar configuracion:', err);
                 alert('No se pudieron recargar todos los audios guardados.');
@@ -2262,6 +2306,7 @@
             setupAudioUnlock();
             try {
                 await loadAudioFilesFromDB();
+                await preloadLoadedAudios();
             } catch (err) {
                 console.error('No se pudieron cargar audios guardados:', err);
             }
