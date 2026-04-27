@@ -1325,6 +1325,7 @@
         let activePlaybackAudio = null;
         let audioUnlocked = false;
         let audioCtx = null;
+        let audioPlaybackQueue = Promise.resolve();
 
         // ============================================================
         //   PERSISTENCIA DE AUDIOS (IndexedDB)
@@ -1706,9 +1707,10 @@
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        async function playAudioSequential(url, times) {
+        async function playAudioSequential(url, times, options = {}) {
+            const interruptCurrent = options.interruptCurrent !== false;
             await unlockAudioPlayback();
-            stopActivePlayback();
+            if (interruptCurrent) stopActivePlayback();
             const audio = new Audio(url);
             audio.preload = 'auto';
             audio.playsInline = true;
@@ -1749,14 +1751,21 @@
             if (activePlaybackAudio === audio) activePlaybackAudio = null;
         }
 
+        function enqueueBallAudio(url, times) {
+            audioPlaybackQueue = audioPlaybackQueue
+                .then(() => playAudioSequential(url, times, { interruptCurrent: false }))
+                .catch(() => {});
+            return audioPlaybackQueue;
+        }
+
         function playBallAudioTwice(number) {
             if (!audioFiles[number]) return;
-            void playAudioSequential(audioFiles[number], 2);
+            void enqueueBallAudio(audioFiles[number], 2);
         }
 
         function playBallAudioOnce(number) {
             if (!audioFiles[number]) return;
-            void playAudioSequential(audioFiles[number], 1);
+            void enqueueBallAudio(audioFiles[number], 1);
         }
 
         async function setAudioForNumber(number, file) {
@@ -1854,6 +1863,8 @@
 
         function initGame() {
             drawSessionId += 1;
+            audioPlaybackQueue = Promise.resolve();
+            stopActivePlayback();
             if (drawRevealTimer) {
                 clearTimeout(drawRevealTimer);
                 drawRevealTimer = null;
