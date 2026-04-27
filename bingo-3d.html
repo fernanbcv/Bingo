@@ -76,6 +76,11 @@
             transform: translateY(-1px);
         }
 
+        /* Misma fila que manual/reiniciar; solo visible en móvil (el FAB se oculta allí). */
+        .config-bar-btn {
+            display: none !important;
+        }
+
         header { text-align: center; margin-bottom: 60px; animation: fadeInDown 0.8s ease-out; }
 
         @keyframes fadeInDown {
@@ -657,9 +662,22 @@
             .number-cell { font-size: 1.4rem; }
             .sidebar { flex-direction: column; }
             .modal-content { padding: 32px 24px; }
-            .settings-fab { top: 10px; right: 10px; width: 46px; height: 46px; }
-            .settings-fab-icon { font-size: 22px; }
+            .settings-fab { display: none !important; }
+            .config-bar-btn { display: block !important; }
             .auto-draw-desktop-only { display: none !important; }
+            /* Misma anchura para todos los botones visibles (solo manual + reiniciar) */
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+                max-width: 100%;
+            }
+            .controls > button {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0 !important;
+                box-sizing: border-box;
+            }
         }
 
         @keyframes confettiFall {
@@ -691,6 +709,7 @@
 
                 <div class="controls">
                     <button class="btn-call" id="callBtn" onclick="callNumber()">Lanzamiento Manual</button>
+                    <button type="button" class="btn-secondary config-bar-btn" id="configBarBtn" onclick="openConfig()" aria-label="Configurar audios">Ajustes</button>
                     <div class="auto-draw-desktop-only">
                         <button class="btn-call" id="autoBtn" onclick="startAutoDraw()">Lanzamiento Automatico</button>
                         <button class="btn-secondary" id="pauseBtn" onclick="toggleAutoPause()" disabled>Pausar Auto</button>
