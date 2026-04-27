@@ -1337,17 +1337,29 @@
         async function unlockAudioPlayback() {
             if (audioUnlocked) return true;
             try {
+                let unlockedByContext = false;
                 const Ctx = window.AudioContext || window.webkitAudioContext;
                 if (Ctx) {
                     if (!audioCtx) audioCtx = new Ctx();
-                    if (audioCtx.state === 'suspended') await audioCtx.resume();
+                    if (audioCtx.state === 'suspended') {
+                        await audioCtx.resume();
+                    }
+                    unlockedByContext = audioCtx.state === 'running';
                 }
 
-                const primer = new Audio(SILENT_AUDIO_DATA_URI);
-                primer.volume = 0.001;
-                await primer.play();
-                primer.pause();
-                primer.currentTime = 0;
+                // En algunos móviles el data URI silencioso falla.
+                // Preferimos "priming" con un audio real cargado, y si no hay, fallback silencioso.
+                const firstLoadedAudio = Object.values(audioFiles)[0];
+                const primer = new Audio(firstLoadedAudio || SILENT_AUDIO_DATA_URI);
+                primer.muted = true;
+                primer.volume = 0;
+                try {
+                    await primer.play();
+                    primer.pause();
+                    primer.currentTime = 0;
+                } catch (_) {
+                    if (!unlockedByContext) throw _;
+                }
 
                 audioUnlocked = true;
                 return true;
@@ -1671,15 +1683,22 @@
         function waitForAudioToFinish(audio) {
             return new Promise((resolve) => {
                 let done = false;
+                let timeoutId = null;
                 const finish = () => {
                     if (done) return;
                     done = true;
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                        timeoutId = null;
+                    }
                     audio.onended = null;
                     audio.onerror = null;
                     resolve();
                 };
                 audio.onended = finish;
                 audio.onerror = finish;
+                // Failsafe para móviles que a veces no disparan ended/error
+                timeoutId = setTimeout(finish, 12000);
             });
         }
 
@@ -1688,8 +1707,11 @@
         }
 
         async function playAudioSequential(url, times) {
+            await unlockAudioPlayback();
             stopActivePlayback();
             const audio = new Audio(url);
+            audio.preload = 'auto';
+            audio.playsInline = true;
             activePlaybackAudio = audio;
 
             for (let i = 0; i < times; i++) {
@@ -1703,12 +1725,23 @@
                     const unlocked = await unlockAudioPlayback();
                     if (unlocked) {
                         try {
+                            audio.currentTime = 0;
                             await audio.play();
                             await waitForAudioToFinish(audio);
                             if (i < times - 1) await waitMs(AUDIO_REPEAT_GAP_MS);
                             continue;
                         } catch (_) {}
                     }
+                    // Fallback final: intentar con una nueva instancia para evitar estado roto del elemento previo
+                    try {
+                        const retry = new Audio(url);
+                        retry.preload = 'auto';
+                        retry.playsInline = true;
+                        await retry.play();
+                        await waitForAudioToFinish(retry);
+                        if (i < times - 1) await waitMs(AUDIO_REPEAT_GAP_MS);
+                        continue;
+                    } catch (_) {}
                     break;
                 }
             }
@@ -1873,6 +1906,10 @@
 
         function callNumber(isAuto = false) {
             if (isDrawing) return false;
+            if (!isAuto) {
+                // Lanzamiento manual ocurre por gesto de usuario: aprovecha para desbloquear audio en móvil.
+                void unlockAudioPlayback();
+            }
             if (numbers.length === 0) {
                 stopAutoDraw();
                 alert('¡No quedan más bolas! 🎉');
