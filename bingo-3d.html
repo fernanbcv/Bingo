@@ -2002,11 +2002,9 @@
                 currentBall = number;
                 updateStats();
                 updateCalledList();
-                if (isAuto) {
-                    playBallAudioTwice(number);
-                } else {
-                    playBallAudioOnce(number);
-                }
+                // Auto y manual usan exactamente la misma ruta de audio
+                // para mantener el mismo comportamiento/tiempos de carga.
+                playBallAudioOnce(number);
             }, 2200);
 
             // Tras 4s: marcar el número en la cuadrícula y volver a idle
