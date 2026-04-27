@@ -1113,6 +1113,9 @@
         let audioCtx = null;
         let audioPlaybackQueue = Promise.resolve();
         let preloadedAudioByNumber = {};
+        /** Buffers decodificados para iOS/Safari (play diferido fuera del gesto del usuario). */
+        let audioBufferCache = {};
+        let audioBufferDecodePromises = {};
         /** audios/1.mp3 ... audios/90.mp3 (archivos del proyecto) */
         let staticAudioFiles = {};
 
@@ -1127,6 +1130,90 @@
 
         function getEffectiveAudioUrl(number) {
             return staticAudioFiles[number] || null;
+        }
+
+        function decodeAudioDataAsync(ctx, arrayBuffer) {
+            const data = arrayBuffer.slice(0);
+            try {
+                const maybePromise = ctx.decodeAudioData(data);
+                if (maybePromise && typeof maybePromise.then === 'function') return maybePromise;
+            } catch (_) { /* navegadores antiguos: solo API con callbacks */ }
+            const data2 = arrayBuffer.slice(0);
+            return new Promise((resolve, reject) => {
+                try {
+                    ctx.decodeAudioData(data2, resolve, reject);
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        }
+
+        async function ensureBallAudioBuffer(number) {
+            const url = getEffectiveAudioUrl(number);
+            if (!url) return null;
+            if (audioBufferCache[number]) return audioBufferCache[number];
+            if (audioBufferDecodePromises[number]) return audioBufferDecodePromises[number];
+            audioBufferDecodePromises[number] = (async () => {
+                try {
+                    await unlockAudioPlayback();
+                    if (!audioCtx) return null;
+                    if (audioCtx.state === 'suspended') await audioCtx.resume();
+                    const res = await fetch(url, { cache: 'force-cache' });
+                    if (!res.ok) return null;
+                    const raw = await res.arrayBuffer();
+                    const buf = await decodeAudioDataAsync(audioCtx, raw);
+                    audioBufferCache[number] = buf;
+                    return buf;
+                } catch (_) {
+                    return null;
+                } finally {
+                    delete audioBufferDecodePromises[number];
+                }
+            })();
+            return audioBufferDecodePromises[number];
+        }
+
+        async function tryPlayBallWebAudio(number) {
+            const buf = await ensureBallAudioBuffer(number);
+            if (!buf || !audioCtx) return false;
+            if (audioCtx.state === 'suspended') {
+                try {
+                    await audioCtx.resume();
+                } catch (_) {
+                    return false;
+                }
+                if (audioCtx.state !== 'running') return false;
+            }
+            try {
+                const src = audioCtx.createBufferSource();
+                src.buffer = buf;
+                src.connect(audioCtx.destination);
+                src.start(0);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function playBallAudioAfterReveal(number) {
+            void tryPlayBallWebAudio(number).then((ok) => {
+                if (!ok) playBallAudioOnce(number);
+            });
+        }
+
+        /** Repetir audio desde un clic (gesto de usuario): Web Audio + fallback HTML5. */
+        function playBallSoundOnDemand(number) {
+            const url = getEffectiveAudioUrl(number);
+            if (!url) return;
+            void (async () => {
+                await unlockAudioPlayback();
+                const ok = await tryPlayBallWebAudio(number);
+                if (!ok) {
+                    const a = new Audio(url);
+                    a.playsInline = true;
+                    void a.play().catch(() => {});
+                }
+            })();
         }
 
         function loadStaticProjectAudios() {
@@ -1420,6 +1507,8 @@
         function initGame() {
             drawSessionId += 1;
             audioPlaybackQueue = Promise.resolve();
+            audioBufferCache = {};
+            audioBufferDecodePromises = {};
             stopActivePlayback();
             if (drawRevealTimer) {
                 clearTimeout(drawRevealTimer);
@@ -1493,6 +1582,8 @@
             const randomIndex = Math.floor(Math.random() * numbers.length);
             const number = numbers[randomIndex];
             numbers.splice(randomIndex, 1);
+            // Precargar el MP3 durante la animación (~2.2s) para que Web Audio esté listo al revelar (iOS).
+            void ensureBallAudioBuffer(number);
 
             const ballDisplay = document.getElementById('ballDisplay');
             ballDisplay.classList.remove('calling', 'idle');
@@ -1514,9 +1605,8 @@
                 currentBall = number;
                 updateStats();
                 updateCalledList();
-                // Auto y manual usan exactamente la misma ruta de audio
-                // para mantener el mismo comportamiento/tiempos de carga.
-                playBallAudioOnce(number);
+                // HTMLAudio dentro de setTimeout falla en iOS; Web Audio con contexto desbloqueado sí.
+                playBallAudioAfterReveal(number);
             }, 2200);
 
             // Tras 4s: marcar el número en la cuadrícula y volver a idle
@@ -1543,10 +1633,8 @@
         }
 
         function manualCall(number) {
-            const url = getEffectiveAudioUrl(number);
-            if (calledNumbers.includes(number) && url) {
-                new Audio(url).play();
-            }
+            if (!calledNumbers.includes(number)) return;
+            playBallSoundOnDemand(number);
         }
 
         function updateStats() {
@@ -1562,10 +1650,7 @@
                 const span = document.createElement('span');
                 span.className = 'called-number';
                 span.textContent = num;
-                span.onclick = () => {
-                    const url = getEffectiveAudioUrl(num);
-                    if (url) new Audio(url).play();
-                };
+                span.onclick = () => playBallSoundOnDemand(num);
                 list.appendChild(span);
             });
         }
